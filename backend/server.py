@@ -1178,6 +1178,29 @@ async def end_call(user: User = Depends(get_current_user)):
     return {"status": "ended", "ended_calls": ended_calls}
 
 
+@api_router.post("/calls/update-sid")
+async def update_call_sid(
+    call_sid: str = Body(...),
+    call_id: str = Body(...),
+    user: User = Depends(get_current_user)
+):
+    """Update active call with Twilio CallSid - called by frontend after call connects."""
+    logger.info(f"Updating call {call_id} with CallSid: {call_sid}")
+    
+    result = await db.active_calls.update_one(
+        {"id": call_id, "user_id": user.id},
+        {"$set": {"twilio_call_sid": call_sid, "status": "in-progress"}}
+    )
+    
+    if result.matched_count > 0:
+        logger.info(f"✅ Updated active call {call_id} with CallSid {call_sid}")
+        return {"status": "updated"}
+    else:
+        logger.warning(f"Active call {call_id} not found for update")
+        return {"status": "not_found"}
+
+
+
 @api_router.get("/calls/history", response_model=List[CallRecord])
 async def get_call_history(user: User = Depends(get_current_user), limit: int = 50):
     calls = await db.calls.find(
