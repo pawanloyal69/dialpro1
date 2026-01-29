@@ -207,6 +207,24 @@ security = HTTPBearer()
 logger.info(f"🔥 Server starting with BACKEND_URL: {BACKEND_URL}")
 logger.info(f"🔥 Twilio client configured: {bool(twilio_client)}")
 
+# Debug endpoint to check configuration
+@api_router.get("/debug/config")
+async def debug_config():
+    """Debug endpoint to verify configuration"""
+    return {
+        "backend_url": BACKEND_URL,
+        "twilio_configured": bool(twilio_client),
+        "twilio_account_sid": TWILIO_ACCOUNT_SID[:10] + "..." if TWILIO_ACCOUNT_SID else None,
+        "mongodb_connected": db is not None,
+        "webhook_urls": {
+            "twiml": f"{BACKEND_URL}/api/webhooks/twiml",
+            "voice": f"{BACKEND_URL}/api/webhooks/voice",
+            "sms": f"{BACKEND_URL}/api/webhooks/sms",
+            "call_status": f"{BACKEND_URL}/api/webhooks/call-status",
+            "voicemail_status": f"{BACKEND_URL}/api/webhooks/voicemail-status"
+        }
+    }
+
 # Middleware to log all incoming webhook requests
 @app.middleware("http")
 async def log_webhook_requests(request: Request, call_next):
