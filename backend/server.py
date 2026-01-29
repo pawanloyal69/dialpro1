@@ -1604,21 +1604,27 @@ async def twiml_webhook(request: Request):
             "started_at": now_iso(),
         })
     
-    # TwiML for outbound call - use call-status as SINGLE source of truth
+    # TwiML for outbound call - CRITICAL: Add statusCallback to BOTH parent and child
+    # The child call (to the destination) will send status updates
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Dial
         callerId="{from_number}"
         timeout="30"
-        action="{BACKEND_URL}/api/webhooks/dial-action?user_id={user_id}&amp;from={from_number}&amp;to={to_number}"
-        statusCallback="{BACKEND_URL}/api/webhooks/call-status"
+        action="{BACKEND_URL}/api/webhooks/dial-action?user_id={user_id}&amp;from={from_number}&amp;to={to_number}&amp;call_sid={call_sid}"
+        statusCallback="{BACKEND_URL}/api/webhooks/call-status?parent_call_sid={call_sid}"
         statusCallbackEvent="initiated ringing answered completed"
         statusCallbackMethod="POST"
     >
-        <Number>{to_number}</Number>
+        <Number 
+            statusCallback="{BACKEND_URL}/api/webhooks/call-status?parent_call_sid={call_sid}"
+            statusCallbackEvent="initiated ringing answered completed"
+            statusCallbackMethod="POST"
+        >{to_number}</Number>
     </Dial>
 </Response>"""
     
+    logger.info(f"Generated TwiML with callbacks for user {user_id}")
     return Response(content=twiml, media_type="application/xml")
 
 
