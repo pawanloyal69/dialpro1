@@ -1736,8 +1736,54 @@ async def call_status_webhook(request: Request):
             logger.info(f"Call {call_sid} already processed")
             return {"status": "ok"}
 
-        logger.warning(f"Call status webhook - missing active call for CallSid: {call_sid}")
-        return {"status": "ignored"}
+        # CRITICAL FIX: Extract call info from webhook form data as fallback
+        logger.warning(f"Call status webhook - missing active call for CallSid: {call_sid}, trying to extract from webhook data")
+        
+        # Get call details from form_data
+        from_number = normalize_phone(form_data.get("From", ""))
+        to_number = normalize_phone(form_data.get("To", ""))
+        direction_hint = form_data.get("Direction", "")
+        
+        # Try to determine user from phone numbers
+        user_id = None
+        direction = None
+        
+        # Check if 'to' is a virtual number (inbound call)
+        to_number_check = await db.virtual_numbers.find_one(
+            {"phone_number": to_number, "status": "assigned"},
+            {"_id": 0}
+        )
+        if to_number_check:
+            user_id = to_number_check["user_id"]
+            direction = "inbound"
+        else:
+            # Check if 'from' is a virtual number (outbound call)
+            from_number_check = await db.virtual_numbers.find_one(
+                {"phone_number": from_number, "status": "assigned"},
+                {"_id": 0}
+            )
+            if from_number_check:
+                user_id = from_number_check["user_id"]
+                direction = "outbound"
+        
+        if not user_id or not direction:
+            logger.error(f"Could not determine user/direction for call {call_sid}")
+            return {"status": "ignored"}
+        
+        # Create a fallback active_call object
+        started_at = now_iso()
+        active_call = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "twilio_call_sid": call_sid,
+            "from_number": from_number,
+            "to_number": to_number,
+            "direction": direction,
+            "status": "fallback",
+            "started_at": started_at,
+        }
+        
+        logger.info(f"Created fallback active_call for {call_sid}: direction={direction}, user={user_id}")
 
 
     
