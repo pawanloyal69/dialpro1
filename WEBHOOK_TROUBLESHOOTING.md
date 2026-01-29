@@ -32,7 +32,7 @@ Make sure these are set in Render Dashboard → Environment:
 BACKEND_URL=https://dial-pro-backend.onrender.com
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
-... (all other Twilio vars)
+... (all other Twilio vars you already have configured)
 ```
 
 **CRITICAL:** The `BACKEND_URL` must match your actual Render URL!
