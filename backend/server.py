@@ -2015,18 +2015,12 @@ async def voicemail_complete_webhook(request: Request):
         "from": from_number,
         "duration": duration
     }, user_id)
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "from_number": from_number,
-        "to_number": to_number,
-        "recording_url": recording_url,
-        "recording_sid": recording_sid,
-        "duration": duration,
-        "is_read": False,
-        "created_at": now_iso(),
-    }
-
-    await db.voicemails.insert_one(voicemail_record)
+    
+    return Response(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<Response><Say>Thank you for your message. Goodbye.</Say><Hangup/></Response>""",
+        media_type="application/xml"
+    )
     
     # Notify user
     await manager.send_personal_message({
