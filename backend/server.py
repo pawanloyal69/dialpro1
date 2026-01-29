@@ -1943,7 +1943,9 @@ async def voicemail_status_webhook(request: Request):
     recording_duration = int(form_data.get("RecordingDuration", "0"))
     recording_status = form_data.get("RecordingStatus", "")
     
+    logger.info(f"🎙️ VOICEMAIL STATUS WEBHOOK TRIGGERED!")
     logger.info(f"Voicemail status - RecordingSid: {recording_sid}, Duration: {recording_duration}, Status: {recording_status}")
+    logger.info(f"Recording URL: {recording_url}")
     
     # Only update if recording is completed
     if recording_status == "completed" and recording_url:
