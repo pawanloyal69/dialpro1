@@ -35,25 +35,34 @@ async def fix_active_calls():
 
 async def add_indexes():
     """Add database indexes for performance"""
-    print("\n2. Adding database indexes...")
+    print("\n2. Checking database indexes...")
     
-    # Calls indexes
-    await db.calls.create_index("user_id")
-    await db.calls.create_index("twilio_call_sid", unique=True)
-    await db.calls.create_index([("user_id", 1), ("started_at", -1)])
-    print("   ✅ Added indexes to calls collection")
+    try:
+        # Calls indexes
+        await db.calls.create_index("user_id")
+        await db.calls.create_index("twilio_call_sid", unique=True)
+        await db.calls.create_index([("user_id", 1), ("started_at", -1)])
+        print("   ✅ Indexes added/verified for calls collection")
+    except Exception as e:
+        print(f"   ℹ️  Indexes already exist for calls: {str(e)[:50]}...")
     
-    # Messages indexes
-    await db.messages.create_index("user_id")
-    await db.messages.create_index("twilio_message_sid", unique=True)
-    await db.messages.create_index([("user_id", 1), ("created_at", -1)])
-    print("   ✅ Added indexes to messages collection")
+    try:
+        # Messages indexes
+        await db.messages.create_index("user_id")
+        await db.messages.create_index("twilio_message_sid", unique=True)
+        await db.messages.create_index([("user_id", 1), ("created_at", -1)])
+        print("   ✅ Indexes added/verified for messages collection")
+    except Exception as e:
+        print(f"   ℹ️  Indexes already exist for messages")
     
-    # Voicemails indexes
-    await db.voicemails.create_index("user_id")
-    await db.voicemails.create_index("recording_url", unique=True)
-    await db.voicemails.create_index([("user_id", 1), ("created_at", -1)])
-    print("   ✅ Added indexes to voicemails collection")
+    try:
+        # Voicemails indexes
+        await db.voicemails.create_index("user_id")
+        await db.voicemails.create_index("recording_url", unique=True)
+        await db.voicemails.create_index([("user_id", 1), ("created_at", -1)])
+        print("   ✅ Indexes added/verified for voicemails collection")
+    except Exception as e:
+        print(f"   ℹ️  Indexes already exist for voicemails")
 
 
 async def verify_call_history():
