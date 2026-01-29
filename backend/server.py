@@ -1746,7 +1746,9 @@ async def call_status_webhook(request: Request):
     duration = int(form_data.get("CallDuration", "0"))
     call_sid = form_data.get("CallSid", "")
     
+    logger.info(f"🔔 CALL STATUS WEBHOOK TRIGGERED!")
     logger.info(f"Call Status - CallSid: {call_sid}, Status: {call_status}, Duration: {duration}")
+    logger.info(f"Form data keys: {list(form_data.keys())}")
     
     # Find active call
     active_call = await db.active_calls.find_one(
