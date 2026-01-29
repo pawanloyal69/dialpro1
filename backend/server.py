@@ -1686,6 +1686,8 @@ async def dial_action_webhook(request: Request):
     <Record 
         maxLength="120" 
         action="{BACKEND_URL}/api/webhooks/voicemail-complete?user_id={user_id}&amp;from={from_number}&amp;to={to_number}"
+        recordingStatusCallback="{BACKEND_URL}/api/webhooks/voicemail-status?user_id={user_id}&amp;from={from_number}&amp;to={to_number}"
+        recordingStatusCallbackEvent="completed"
         playBeep="true" 
     />
     <Say>No message recorded. Goodbye.</Say>
