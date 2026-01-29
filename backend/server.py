@@ -1681,15 +1681,19 @@ async def voice_webhook(request: Request):
     <Dial
         timeout="30"
         callerId="{from_number}"
-        action="{BACKEND_URL}/api/webhooks/dial-action?user_id={user_id}&amp;from={from_number}&amp;to={to_number}&amp;call_id={call_id}&amp;direction=inbound"
-        statusCallback="{BACKEND_URL}/api/webhooks/call-status"
+        action="{BACKEND_URL}/api/webhooks/dial-action?user_id={user_id}&amp;from={from_number}&amp;to={to_number}&amp;call_id={call_id}&amp;direction=inbound&amp;call_sid={call_sid}"
+        statusCallback="{BACKEND_URL}/api/webhooks/call-status?parent_call_sid={call_sid}"
         statusCallbackEvent="initiated ringing answered completed"
         statusCallbackMethod="POST"
     >
-        <Client>{client_identity}</Client>
+        <Client 
+            statusCallback="{BACKEND_URL}/api/webhooks/call-status?parent_call_sid={call_sid}"
+            statusCallbackEvent="initiated ringing answered completed"
+        >{client_identity}</Client>
     </Dial>
 </Response>"""
         
+        logger.info(f"Generated inbound TwiML with callbacks for {call_sid}")
         return Response(content=twiml, media_type="application/xml")
     
     logger.warning(f"Incoming call to unassigned number: {to_number}")
