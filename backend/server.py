@@ -1955,18 +1955,19 @@ async def call_status_webhook(request: Request):
 
 @api_router.post("/webhooks/voicemail-complete")
 async def voicemail_complete_webhook(request: Request):
-    """Save voicemail recording with idempotency."""
+    """Save voicemail recording - GET DURATION FROM HERE."""
     form_data = await request.form()
     
     recording_url = form_data.get("RecordingUrl", "")
     recording_sid = form_data.get("RecordingSid", "")
     call_sid = form_data.get("CallSid", "")
+    duration = int(form_data.get("RecordingDuration", "0"))
     
     user_id = request.query_params.get("user_id", "")
     from_number = normalize_phone(request.query_params.get("from", ""))
     to_number = normalize_phone(request.query_params.get("to", ""))
     
-    logger.info(f"Voicemail complete - RecordingSid: {recording_sid}, CallSid: {call_sid}")
+    logger.info(f"🎙️ VOICEMAIL COMPLETE - Duration: {duration}s, RecordingSid: {recording_sid}")
     
     if not recording_url:
         return Response(
@@ -1978,16 +1979,42 @@ async def voicemail_complete_webhook(request: Request):
     # Idempotency check
     existing = await db.voicemails.find_one({"recording_url": recording_url})
     if existing:
-        logger.info(f"Voicemail {recording_url} already exists, skipping")
+        logger.info(f"Voicemail {recording_url} already exists, updating duration")
+        # Update duration if it was 0
+        if existing.get("duration", 0) == 0 and duration > 0:
+            await db.voicemails.update_one(
+                {"recording_url": recording_url},
+                {"$set": {"duration": duration}}
+            )
+            logger.info(f"✅ Updated voicemail duration to {duration}s")
         return Response(
             """<?xml version="1.0" encoding="UTF-8"?>
 <Response><Say>Thank you. Goodbye.</Say><Hangup/></Response>""",
             media_type="application/xml"
         )
-    
-    duration = int(form_data.get("RecordingDuration", "0"))
 
     voicemail_record = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "from_number": from_number,
+        "to_number": to_number,
+        "recording_url": recording_url,
+        "recording_sid": recording_sid,
+        "duration": duration,  # Use duration from THIS webhook
+        "is_read": False,
+        "created_at": now_iso(),
+    }
+
+    await db.voicemails.insert_one(voicemail_record)
+    logger.info(f"✅ SAVED VOICEMAIL with duration {duration}s")
+    
+    # Notify user
+    await manager.send_personal_message({
+        "type": "voicemail_received",
+        "voicemail_id": voicemail_record["id"],
+        "from": from_number,
+        "duration": duration
+    }, user_id)
         "id": str(uuid.uuid4()),
         "user_id": user_id,
         "from_number": from_number,
