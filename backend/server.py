@@ -203,6 +203,21 @@ api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
 
+# Log BACKEND_URL for debugging
+logger.info(f"🔥 Server starting with BACKEND_URL: {BACKEND_URL}")
+logger.info(f"🔥 Twilio client configured: {bool(twilio_client)}")
+
+# Middleware to log all incoming webhook requests
+@app.middleware("http")
+async def log_webhook_requests(request: Request, call_next):
+    if "/webhooks/" in str(request.url):
+        logger.info(f"📞 WEBHOOK: {request.method} {request.url}")
+        logger.info(f"📞 Headers: {dict(request.headers)}")
+    response = await call_next(request)
+    return response
+
+
+
 # ============================================================================
 # PYDANTIC MODELS
 # ============================================================================
