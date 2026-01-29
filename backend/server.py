@@ -1662,19 +1662,28 @@ async def voice_webhook(request: Request):
     from_number = normalize_phone(form_data.get("From", ""))
     to_number = normalize_phone(form_data.get("To", ""))
     call_sid = form_data.get("CallSid", "")
+    direction = form_data.get("Direction", "")
     
-    logger.info(f"Voice webhook - From: {from_number}, To: {to_number}, CallSid: {call_sid}")
+    logger.info(f"Voice webhook - From: {from_number}, To: {to_number}, Direction: {direction}, CallSid: {call_sid}")
     
-    # CRITICAL FIX: Check if this is an outbound call leg
-    # If From is a virtual number, this is part of an outbound call flow - ignore it
+    # CRITICAL FIX: For outbound-dial, don't interfere
+    if direction == "outbound-dial":
+        logger.info(f"Outbound-dial detected, passing through")
+        # Return empty response to let the call proceed
+        return Response(
+            """<?xml version="1.0" encoding="UTF-8"?>
+<Response></Response>""",
+            media_type="application/xml"
+        )
+    
+    # Check if this is an outbound call leg (From is a virtual number)
     from_number_check = await db.virtual_numbers.find_one(
         {"phone_number": from_number, "status": "assigned"},
         {"_id": 0}
     )
     
     if from_number_check:
-        logger.info(f"Outbound call leg detected (from virtual number {from_number}), ignoring")
-        # Return empty response - the TwiML app will handle this
+        logger.info(f"Outbound call leg detected (from virtual number {from_number}), passing through")
         return Response(
             """<?xml version="1.0" encoding="UTF-8"?>
 <Response></Response>""",
