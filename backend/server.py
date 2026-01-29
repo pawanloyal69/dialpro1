@@ -1531,7 +1531,8 @@ async def twiml_webhook(request: Request):
     caller_identity = form.get("Caller", "")
     call_sid = form.get("CallSid", "")
     
-    logger.info(f"TwiML Webhook - To: {to_number}, Caller: {caller_identity}, CallSid: {call_sid}")
+    logger.info(f"🔥 TWIML WEBHOOK CALLED! To: {to_number}, Caller: {caller_identity}, CallSid: {call_sid}")
+    logger.info(f"🔥 BACKEND_URL being used: {BACKEND_URL}")
     
     # Parse user_id from Caller
     user_id = ""
