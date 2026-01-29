@@ -1710,8 +1710,7 @@ async def voice_webhook(request: Request):
 @api_router.post("/webhooks/dial-action")
 async def dial_action_webhook(request: Request):
     """
-    Handle Dial action callback - used for voicemail fallback only.
-    Call history is saved in call-status webhook (single source of truth).
+    Handle Dial action callback - SAVE CALL HISTORY HERE since status callbacks don't work.
     """
     form_data = await request.form()
     
@@ -1719,15 +1718,72 @@ async def dial_action_webhook(request: Request):
     from_number = normalize_phone(request.query_params.get("from", ""))
     to_number = normalize_phone(request.query_params.get("to", ""))
     call_id = request.query_params.get("call_id", "")
+    call_sid_param = request.query_params.get("call_sid", "")
     direction = request.query_params.get("direction", "outbound")
     
     dial_status = form_data.get("DialCallStatus", "")
+    dial_duration = int(form_data.get("DialCallDuration", "0"))
+    call_sid = form_data.get("CallSid", call_sid_param)
     
-    logger.info(f"Dial Action - User: {user_id}, Status: {dial_status}, Direction: {direction}")
+    logger.info(f"🔥 DIAL ACTION WEBHOOK - User: {user_id}, Status: {dial_status}, Duration: {dial_duration}s, Direction: {direction}")
+    
+    # SAVE CALL TO HISTORY HERE - Don't wait for status callback that never comes
+    if user_id and from_number and to_number:
+        # Map dial status to call status
+        if dial_status == "completed":
+            final_status = "completed"
+        elif dial_status in ["no-answer", "busy"]:
+            final_status = "missed" if direction == "inbound" else "no-answer"
+        elif dial_status == "failed":
+            final_status = "failed"
+        elif dial_status == "canceled":
+            final_status = "canceled"
+        else:
+            final_status = dial_status or "unknown"
+        
+        # Calculate cost for outbound calls
+        cost = 0.0
+        if dial_status == "completed" and direction == "outbound" and dial_duration > 0:
+            cost = await calculate_and_bill_call(user_id, from_number, dial_duration, direction)
+        
+        # Save to history with idempotency check
+        existing = await db.calls.find_one({"twilio_call_sid": call_sid}, {"_id": 0})
+        if not existing:
+            call_record = {
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "from_number": from_number,
+                "to_number": to_number,
+                "direction": direction,
+                "status": final_status,
+                "duration": dial_duration,
+                "cost": cost,
+                "twilio_call_sid": call_sid,
+                "started_at": now_iso(),
+                "ended_at": now_iso()
+            }
+            await db.calls.insert_one(call_record)
+            logger.info(f"✅ SAVED CALL TO HISTORY: {direction} {from_number} -> {to_number}, Duration: {dial_duration}s")
+            
+            # Notify user via WebSocket
+            await manager.send_personal_message({
+                "type": "call_ended",
+                "call_id": call_record["id"],
+                "status": final_status,
+                "duration": dial_duration,
+                "cost": cost
+            }, user_id)
     
     # Clean up active call
     if call_id:
         await db.active_calls.delete_one({"id": call_id})
+    else:
+        await db.active_calls.delete_many({
+            "user_id": user_id,
+            "from_number": from_number,
+            "to_number": to_number,
+            "direction": direction
+        })
     else:
         await db.active_calls.delete_many({
             "user_id": user_id,
