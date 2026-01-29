@@ -1853,6 +1853,38 @@ async def voicemail_complete_webhook(request: Request):
     )
 
 
+@api_router.post("/webhooks/voicemail-status")
+async def voicemail_status_webhook(request: Request):
+    """
+    Update voicemail with actual duration from recording status callback.
+    This webhook receives the RecordingDuration after Twilio processes the recording.
+    """
+    form_data = await request.form()
+    
+    recording_url = form_data.get("RecordingUrl", "")
+    recording_sid = form_data.get("RecordingSid", "")
+    recording_duration = int(form_data.get("RecordingDuration", "0"))
+    recording_status = form_data.get("RecordingStatus", "")
+    
+    logger.info(f"Voicemail status - RecordingSid: {recording_sid}, Duration: {recording_duration}, Status: {recording_status}")
+    
+    # Only update if recording is completed
+    if recording_status == "completed" and recording_url:
+        # Find and update the voicemail with the actual duration
+        result = await db.voicemails.update_one(
+            {"recording_url": recording_url},
+            {"$set": {"duration": recording_duration}}
+        )
+        
+        if result.modified_count > 0:
+            logger.info(f"Updated voicemail duration: {recording_duration}s for {recording_sid}")
+        else:
+            logger.warning(f"Could not find voicemail to update for {recording_sid}")
+    
+    return {"status": "ok"}
+
+
+
 @api_router.post("/webhooks/sms")
 async def sms_webhook(request: Request):
     """Handle incoming SMS with idempotency."""
