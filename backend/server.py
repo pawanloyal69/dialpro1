@@ -1784,13 +1784,6 @@ async def dial_action_webhook(request: Request):
             "to_number": to_number,
             "direction": direction
         })
-    else:
-        await db.active_calls.delete_many({
-            "user_id": user_id,
-            "from_number": from_number,
-            "to_number": to_number,
-            "direction": direction
-        })
     
     # For unanswered inbound calls, trigger voicemail
     if direction == "inbound" and dial_status in ["no-answer", "busy", "failed", "canceled"]:
