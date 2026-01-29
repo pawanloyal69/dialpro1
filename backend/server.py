@@ -1544,8 +1544,8 @@ async def twiml_webhook(request: Request):
     
     from_number = number["phone_number"]
     
-    # Update active_call with CallSid
-    await db.active_calls.update_one(
+    # Update or create active_call with CallSid
+    result = await db.active_calls.update_one(
         {
             "user_id": user_id,
             "from_number": from_number,
@@ -1555,6 +1555,20 @@ async def twiml_webhook(request: Request):
         },
         {"$set": {"twilio_call_sid": call_sid, "status": "initiated"}}
     )
+    
+    # If no existing active_call was found, create one
+    if result.matched_count == 0:
+        logger.warning(f"TwiML: No active_call found for user {user_id}, creating new one")
+        await db.active_calls.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "twilio_call_sid": call_sid,
+            "from_number": from_number,
+            "to_number": to_number,
+            "direction": "outbound",
+            "status": "initiated",
+            "started_at": now_iso(),
+        })
     
     # TwiML for outbound call - use call-status as SINGLE source of truth
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
