@@ -32,6 +32,7 @@ const ConversationsView = () => {
   const [activeTab, setActiveTab] = useState('calls');
   const [smsView, setSmsView] = useState('list');
   const messagesEndRef = useRef(null);
+  const { messages: wsMessages } = useWebSocket();
 
   /* ================= HELPERS ================= */
   const getContactNumber = useCallback(
