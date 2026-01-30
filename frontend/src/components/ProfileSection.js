@@ -92,9 +92,8 @@ const ProfileSection = () => {
           Logout
         </Button>
 
-    
-{/* Download Android App (Desktop only) */}
-<div className="hidden md:block">
+    {/* Download Android App (Desktop only) */}
+<div className="hidden lg:block">
   <Button
     asChild
     variant="outline"
@@ -107,7 +106,6 @@ const ProfileSection = () => {
     </a>
   </Button>
 </div>
-
 
 
 
