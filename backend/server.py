@@ -1666,11 +1666,13 @@ async def twiml_webhook(request: Request):
     
     # TwiML for outbound call - CRITICAL: Add statusCallback to BOTH parent and child
     # The child call (to the destination) will send status updates
+    # answerOnBridge="false" prevents call from answering until destination picks up
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Dial
         callerId="{from_number}"
-        timeout="30"
+        timeout="60"
+        answerOnBridge="false"
         action="{BACKEND_URL}/api/webhooks/dial-action?user_id={user_id}&amp;from={from_number}&amp;to={to_number}&amp;call_sid={call_sid}"
         statusCallback="{BACKEND_URL}/api/webhooks/call-status?parent_call_sid={call_sid}"
         statusCallbackEvent="initiated ringing answered completed"
@@ -1684,7 +1686,7 @@ async def twiml_webhook(request: Request):
     </Dial>
 </Response>"""
     
-    logger.info(f"Generated TwiML with callbacks for user {user_id}")
+    logger.info(f"Generated TwiML with callbacks and answerOnBridge=false for user {user_id}")
     return Response(content=twiml, media_type="application/xml")
 
 
