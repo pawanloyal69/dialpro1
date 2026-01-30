@@ -367,13 +367,31 @@ const ConversationsView = () => {
                   </p>
                   <p className="text-xs text-gray-500 mb-2">
                     {format(new Date(vm.created_at || new Date()), 'MMM d, h:mm a')}
-                    {vm.duration > 0 && ` • ${Math.floor(vm.duration / 60)}:${(vm.duration % 60).toString().padStart(2, '0')}`}
+                    {vm.duration > 0 ? (
+                      ` • ${Math.floor(vm.duration / 60)}:${(vm.duration % 60).toString().padStart(2, '0')}`
+                    ) : (
+                      <span className="text-orange-500"> • Processing...</span>
+                    )}
                   </p>
-                  <audio controls className="w-full mt-2">
-                    <source
-                      src={`${process.env.REACT_APP_BACKEND_URL}/api/voicemails/${vm.id}/audio`}
-                    />
-                  </audio>
+                  {vm.recording_url ? (
+                    <audio 
+                      controls 
+                      className="w-full mt-2"
+                      preload="metadata"
+                      onError={(e) => {
+                        console.error('Audio playback error:', e);
+                        toast.error('Failed to load voicemail audio');
+                      }}
+                    >
+                      <source
+                        src={`${process.env.REACT_APP_BACKEND_URL}/api/voicemails/${vm.id}/audio`}
+                        type="audio/mpeg"
+                      />
+                      Your browser does not support audio playback.
+                    </audio>
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-2">Recording not available</p>
+                  )}
                 </div>
               ))
             )}
