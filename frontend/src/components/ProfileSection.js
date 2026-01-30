@@ -92,8 +92,13 @@ const ProfileSection = () => {
           Logout
         </Button>
 
-    {/* Download Android App (Desktop only) */}
-<div className="hidden lg:block">
+   {/* Download Android App (Desktop only) */}
+<div
+  style={{
+    display: 'none'
+  }}
+  className="desktop-only"
+>
   <Button
     asChild
     variant="outline"
@@ -106,6 +111,17 @@ const ProfileSection = () => {
     </a>
   </Button>
 </div>
+
+<style>
+{`
+@media (min-width: 1024px) {
+  .desktop-only {
+    display: block;
+  }
+}
+`}
+</style>
+
 
 
 
