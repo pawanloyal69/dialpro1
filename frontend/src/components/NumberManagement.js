@@ -132,9 +132,6 @@ const NumberManagement = () => {
                     <p className="text-blue-800 dark:text-blue-200">
                       Unlimited Calls: <span className="font-bold">${getPricingForCountry(selectedCountry).unlimited_call_plan_monthly}/month</span>
                     </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-300 mt-2">
-                      *Unlimited plan: 2000 minutes FUP for outbound calls. SMS remains pay-as-you-go.
-                    </p>
                   </div>
                 )}
               </div>
