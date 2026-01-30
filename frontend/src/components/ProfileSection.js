@@ -5,6 +5,19 @@ import { User, LogOut, FileText, Shield, Info, Download } from 'lucide-react';
 import { useAuth } from '../api/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import React, { useEffect, useState } from 'react';
+
+const [isDesktop, setIsDesktop] = useState(false);
+
+useEffect(() => {
+  const checkDesktop = () => {
+    setIsDesktop(window.innerWidth >= 1024);
+  };
+
+  checkDesktop();
+  window.addEventListener('resize', checkDesktop);
+  return () => window.removeEventListener('resize', checkDesktop);
+}, []);
 
 const ProfileSection = () => {
   const { user, logout } = useAuth();
@@ -92,13 +105,9 @@ const ProfileSection = () => {
           Logout
         </Button>
 
-   {/* Download Android App (Desktop only) */}
-<div
-  style={{
-    display: 'none'
-  }}
-  className="desktop-only"
->
+   
+{/* Download Android App (Desktop only) */}
+{isDesktop && (
   <Button
     asChild
     variant="outline"
@@ -110,17 +119,7 @@ const ProfileSection = () => {
       Download Android App
     </a>
   </Button>
-</div>
-
-<style>
-{`
-@media (min-width: 1024px) {
-  .desktop-only {
-    display: block;
-  }
-}
-`}
-</style>
+)}
 
 
 
