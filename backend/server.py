@@ -1398,7 +1398,7 @@ async def get_message_history(user: User = Depends(get_current_user), limit: int
     return await db.messages.find(
         {"user_id": user.id},
         {"_id": 0}
-    ).sort("created_at", -1).limit(limit).to_list(limit)
+    ).sort([("created_at", -1)]).limit(limit).to_list(limit)
 
 
 # ============================================================================
