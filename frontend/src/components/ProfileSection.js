@@ -92,21 +92,20 @@ const ProfileSection = () => {
           Logout
         </Button>
 
-    {/* Download Android App */}
-<a
-  href="/dialpro.apk"
-  download
-  className="block"
+    
+{/* Download Android App */}
+<Button
+  asChild
+  variant="outline"
+  className="w-full flex items-center justify-center gap-2"
+  data-testid="download-android-app"
 >
-  <Button
-    variant="outline"
-    className="w-full flex items-center justify-center gap-2"
-    data-testid="download-android-app"
-  >
+  <a href="/dialpro.apk" download>
     <Download className="w-4 h-4" />
     Download Android App
-  </Button>
-</a>
+  </a>
+</Button>
+
 
 
         {/* Footer */}
