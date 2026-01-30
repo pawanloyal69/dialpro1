@@ -67,15 +67,24 @@ const ConversationsView = () => {
   /* ================= LOAD CONVERSATIONS ================= */
   const loadConversations = useCallback(async () => {
     try {
-      const callsRes = await api.get('/calls/history?limit=100');
+      const [callsRes, messagesRes] = await Promise.all([
+        api.get('/calls/history?limit=100'),
+        api.get('/messages/history?limit=100')
+      ]);
       
       // Sort calls by started_at descending (newest first)
       const sortedCalls = callsRes.data.sort((a, b) => 
         new Date(b.started_at) - new Date(a.started_at)
       );
       
+      // Sort messages by created_at descending (newest first)
+      const sortedMessages = messagesRes.data.sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+      
       const map = new Map();
 
+      // Add calls to conversation map
       sortedCalls.forEach(call => {
         const contact = getContactNumber(call.from_number, call.to_number);
         if (!map.has(contact)) {
@@ -86,6 +95,24 @@ const ConversationsView = () => {
         }
       });
 
+      // Add messages to conversation map (may update last_activity if message is newer)
+      sortedMessages.forEach(msg => {
+        const contact = getContactNumber(msg.from_number, msg.to_number);
+        if (!map.has(contact)) {
+          map.set(contact, {
+            phone_number: contact,
+            last_activity: msg.created_at
+          });
+        } else {
+          // Update last_activity if this message is newer than existing entry
+          const existing = map.get(contact);
+          if (new Date(msg.created_at) > new Date(existing.last_activity)) {
+            existing.last_activity = msg.created_at;
+          }
+        }
+      });
+
+      // Sort conversations by last_activity (newest first)
       setConversations(
         Array.from(map.values()).sort(
           (a, b) => new Date(b.last_activity) - new Date(a.last_activity)
