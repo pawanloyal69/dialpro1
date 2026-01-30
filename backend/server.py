@@ -1272,25 +1272,48 @@ async def stream_voicemail_audio(voicemail_id: str, user: User = Depends(get_cur
     if not recording_url:
         raise HTTPException(status_code=404, detail="Recording not available")
     
+    # Ensure URL has .mp3 extension
     if not recording_url.endswith(".mp3"):
         recording_url += ".mp3"
     
+    # If duration is 0 or missing, try to get it from Twilio
+    if voicemail.get("duration", 0) == 0 and voicemail.get("recording_sid"):
+        try:
+            recording = twilio_client.recordings(voicemail["recording_sid"]).fetch()
+            if recording.duration:
+                duration = int(recording.duration)
+                await db.voicemails.update_one(
+                    {"id": voicemail_id},
+                    {"$set": {"duration": duration}}
+                )
+                logger.info(f"Updated voicemail {voicemail_id} duration to {duration}s from Twilio")
+        except Exception as e:
+            logger.warning(f"Failed to fetch duration from Twilio: {e}")
+    
     auth = aiohttp.BasicAuth(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     
-    async with aiohttp.ClientSession(auth=auth) as session:
-        async with session.get(recording_url) as resp:
-            if resp.status != 200:
-                raise HTTPException(status_code=502, detail="Failed to fetch recording")
-            audio_data = await resp.read()
-    
-    return StreamingResponse(
-        io.BytesIO(audio_data),
-        media_type="audio/mpeg",
-        headers={
-            "Accept-Ranges": "bytes",
-            "Cache-Control": "no-store",
-        },
-    )
+    try:
+        async with aiohttp.ClientSession(auth=auth) as session:
+            async with session.get(recording_url) as resp:
+                if resp.status != 200:
+                    logger.error(f"Failed to fetch recording from Twilio: {resp.status}")
+                    raise HTTPException(status_code=502, detail="Failed to fetch recording from Twilio")
+                audio_data = await resp.read()
+        
+        logger.info(f"Successfully streamed voicemail {voicemail_id}, size: {len(audio_data)} bytes")
+        
+        return StreamingResponse(
+            io.BytesIO(audio_data),
+            media_type="audio/mpeg",
+            headers={
+                "Accept-Ranges": "bytes",
+                "Cache-Control": "no-store",
+                "Content-Length": str(len(audio_data)),
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error streaming voicemail audio: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to stream audio: {str(e)}")
 
 
 # ============================================================================
