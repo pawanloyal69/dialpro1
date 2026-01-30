@@ -7,7 +7,6 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { toast } from 'sonner';
-import { Phone } from 'lucide-react';
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
@@ -69,9 +68,12 @@ const SignupPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white dark:from-slate-900 dark:to-slate-800 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
-            <Phone className="w-8 h-8 text-white" />
-          </div>
+          <img
+            src="/logo192.png"
+            alt="DialPro"
+            className="h-16 w-16 mx-auto mb-4"
+          />
+
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">Dial Pro</h1>
           <p className="text-gray-600 dark:text-gray-400">Powered by Tech Talk Titan</p>
         </div>
