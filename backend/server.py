@@ -1302,28 +1302,40 @@ async def send_message(request: SMSRequest, user: User = Depends(get_current_use
     from_number = normalize_phone(request.from_number)
     to_number = normalize_phone(request.to_number)
     
+    logger.info(f"📤 SMS SEND REQUEST - From: {from_number}, To: {to_number}, User: {user.id}")
+    
+    # Check if Twilio client is configured
+    if not twilio_client:
+        logger.error("Twilio client not configured!")
+        raise HTTPException(status_code=500, detail="SMS service not configured")
+    
     number = await db.virtual_numbers.find_one({
         "phone_number": from_number,
         "user_id": user.id,
         "status": "assigned"
     })
     if not number:
+        logger.warning(f"Number {from_number} not owned by user {user.id}")
         raise HTTPException(status_code=403, detail="Number not owned by user")
     
     pricing = await db.pricing.find_one({"country_code": number["country_code"]}, {"_id": 0})
     if not pricing:
+        logger.error(f"No pricing found for country {number['country_code']}")
         raise HTTPException(status_code=404, detail="Pricing not found")
     
     user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
     if user_doc["wallet_balance"] < pricing["sms_price"]:
+        logger.warning(f"Insufficient balance for user {user.id}: {user_doc['wallet_balance']} < {pricing['sms_price']}")
         raise HTTPException(status_code=400, detail="Insufficient balance for SMS")
     
     try:
+        logger.info(f"Sending SMS via Twilio: {from_number} -> {to_number}")
         message = twilio_client.messages.create(
             to=to_number,
             from_=from_number,
             body=request.body
         )
+        logger.info(f"✅ SMS sent successfully! MessageSid: {message.sid}, Status: {message.status}")
         
         new_balance = user_doc["wallet_balance"] - pricing["sms_price"]
         await db.users.update_one(
@@ -1360,6 +1372,8 @@ async def send_message(request: SMSRequest, user: User = Depends(get_current_use
         message_doc.pop("_id", None)
         return {"message": message_doc, "balance": new_balance}
     except Exception as e:
+        logger.error(f"❌ Failed to send SMS: {str(e)}")
+        logger.exception("SMS send exception:")
         raise HTTPException(status_code=400, detail=str(e))
 
 
