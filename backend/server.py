@@ -2471,13 +2471,13 @@ app.add_middleware(
 async def startup_event():
     """Initialize database with seed data."""
     # Create admin user
-    admin = await db.users.find_one({"email": "admin@dailpro.live"})
+    admin = await db.users.find_one({"email": "admin@dialpro.live"})
     if not admin:
         hashed_password = ph.hash("admin212")
         admin_doc = {
             "id": str(uuid.uuid4()),
             "phone_number": "+10000000000",
-            "email": "admin@dailpro.live",
+            "email": "admin@dialpro.live",
             "name": "Admin",
             "password": hashed_password,
             "role": "admin",
