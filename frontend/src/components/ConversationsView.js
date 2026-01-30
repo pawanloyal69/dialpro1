@@ -68,9 +68,15 @@ const ConversationsView = () => {
   const loadConversations = useCallback(async () => {
     try {
       const callsRes = await api.get('/calls/history?limit=100');
+      
+      // Sort calls by started_at descending (newest first)
+      const sortedCalls = callsRes.data.sort((a, b) => 
+        new Date(b.started_at) - new Date(a.started_at)
+      );
+      
       const map = new Map();
 
-      callsRes.data.forEach(call => {
+      sortedCalls.forEach(call => {
         const contact = getContactNumber(call.from_number, call.to_number);
         if (!map.has(contact)) {
           map.set(contact, {
@@ -86,7 +92,7 @@ const ConversationsView = () => {
         )
       );
 
-      setCalls(callsRes.data);
+      setCalls(sortedCalls);
     } catch (e) {
       console.error('Failed to load conversations', e);
     }
