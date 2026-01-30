@@ -45,9 +45,15 @@ const Messages = () => {
 
     try {
       const res = await api.get('/messages/history?limit=100');
+      
+      // Sort messages by created_at descending (newest first) to ensure we get latest activity
+      const sortedMessages = res.data.sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+      
       const map = new Map();
 
-      res.data.forEach(msg => {
+      sortedMessages.forEach(msg => {
         const contact = getContactNumber(msg.from_number, msg.to_number);
         if (!map.has(contact)) {
           map.set(contact, {
