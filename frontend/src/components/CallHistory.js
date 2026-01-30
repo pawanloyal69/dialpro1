@@ -5,6 +5,7 @@ import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Voicemail } from 'luc
 import { toast } from 'sonner';
 import api from '../api/client';
 import { format } from 'date-fns';
+import { useWebSocket } from '../api/WebSocketContext';
 
 const CallHistory = () => {
   const [calls, setCalls] = useState([]);
