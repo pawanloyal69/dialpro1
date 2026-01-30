@@ -10,10 +10,20 @@ import { useWebSocket } from '../api/WebSocketContext';
 const CallHistory = () => {
   const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { messages } = useWebSocket();
 
   useEffect(() => {
     loadCallHistory();
   }, []);
+
+  // Auto-refresh call history when call ends
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.type === 'call_ended') {
+      console.log('Call ended - refreshing call history');
+      loadCallHistory();
+    }
+  }, [messages]);
 
   const loadCallHistory = async () => {
     try {
