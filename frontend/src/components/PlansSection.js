@@ -87,7 +87,7 @@ const PlansSection = () => {
               <DialogHeader>
                 <DialogTitle>Buy Unlimited Calling Plan</DialogTitle>
                 <DialogDescription>
-                  Get unlimited calls for 30 days (2000 min FUP)
+                  Get unlimited calls for 30 days
                 </DialogDescription>
               </DialogHeader>
 
@@ -134,10 +134,6 @@ const PlansSection = () => {
                       <li className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-green-500" />
                         Unlimited outbound calls
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-green-500" />
-                        2000 minutes FUP
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-green-500" />
