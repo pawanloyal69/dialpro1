@@ -269,8 +269,8 @@ const ConversationsView = () => {
                 </Button>
                 <div className="space-y-2 mb-4">
                   {messages.map(m => (
-                    <div key={m.id} className={`${m.direction === 'outbound' ? 'text-right' : ''}`}>
-                      <span className={`inline-block p-2 rounded ${m.direction === 'outbound' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+                    <div key={m.id} className={`flex ${m.direction === 'inbound' ? 'justify-end' : 'justify-start'}`}>
+                      <span className={`inline-block p-2 rounded max-w-[70%] ${m.direction === 'inbound' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
                         {m.body}
                       </span>
                     </div>
@@ -306,6 +306,7 @@ const ConversationsView = () => {
                   </p>
                   <p className="text-xs text-gray-500 mb-2">
                     {format(new Date(vm.created_at || new Date()), 'MMM d, h:mm a')}
+                    {vm.duration > 0 && ` • ${Math.floor(vm.duration / 60)}:${(vm.duration % 60).toString().padStart(2, '0')}`}
                   </p>
                   <audio controls className="w-full mt-2">
                     <source

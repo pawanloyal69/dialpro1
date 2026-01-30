@@ -2062,19 +2062,6 @@ async def voicemail_complete_webhook(request: Request):
 <Response><Say>Thank you for your message. Goodbye.</Say><Hangup/></Response>""",
         media_type="application/xml"
     )
-    
-    # Notify user
-    await manager.send_personal_message({
-        "type": "voicemail_received",
-        "voicemail_id": voicemail_record["id"],
-        "from": from_number,
-    }, user_id)
-    
-    return Response(
-        """<?xml version="1.0" encoding="UTF-8"?>
-<Response><Say>Thank you for your message. Goodbye.</Say><Hangup/></Response>""",
-        media_type="application/xml"
-    )
 
 
 @api_router.post("/webhooks/voicemail-status")

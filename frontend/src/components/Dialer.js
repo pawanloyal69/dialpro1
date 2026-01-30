@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   Phone, PhoneOff, Mic, MicOff, Delete, Pause, Play,
   Grid3X3, PhoneForwarded, UserPlus, GitMerge, PhoneIncoming,
-  Volume2, VolumeX, AlertCircle
+  Volume2, VolumeX, AlertCircle, Speaker
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../api/client';
@@ -32,6 +32,8 @@ const Dialer = () => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [showKeypad, setShowKeypad] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showAddCall, setShowAddCall] = useState(false);
@@ -241,6 +243,14 @@ useEffect(() => {
           setMicPermission('unknown');
         });
     }
+
+    // Detect if device is mobile
+    const checkMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsMobile(isMobileDevice || isTouchDevice);
+    };
+    checkMobile();
   }, []);
 
   const loadMyNumbers = useCallback(async () => {
@@ -293,6 +303,7 @@ useEffect(() => {
     setActiveCall(null);
     setIsMuted(false);
     setIsOnHold(false);
+    setIsSpeakerOn(false);
     setShowKeypad(false);
     callRef.current = null;
     toast.info('Call ended');
@@ -551,6 +562,35 @@ call.on('accept', async () => {
     toast.info(isOnHold ? 'Call Resumed' : 'Call On Hold');
   };
 
+  const handleToggleSpeaker = async () => {
+    try {
+      if (!callRef.current) return;
+      
+      const newSpeakerState = !isSpeakerOn;
+      
+      // Get the audio element from Twilio Device
+      const audioElement = document.querySelector('audio');
+      
+      if (audioElement && audioElement.setSinkId) {
+        // Use setSinkId to switch between speaker and earpiece
+        // Empty string '' = default device (earpiece on mobile)
+        // 'default' = default output device (speaker on mobile)
+        await audioElement.setSinkId(newSpeakerState ? 'default' : '');
+        setIsSpeakerOn(newSpeakerState);
+        toast.info(newSpeakerState ? 'Speaker On' : 'Earpiece On');
+      } else {
+        // Fallback: Just toggle the state and show message
+        setIsSpeakerOn(newSpeakerState);
+        toast.info(newSpeakerState ? 'Speaker Mode' : 'Earpiece Mode');
+      }
+    } catch (error) {
+      console.error('Failed to toggle speaker:', error);
+      // Still toggle state even if setSinkId fails
+      setIsSpeakerOn(!isSpeakerOn);
+      toast.info(isSpeakerOn ? 'Earpiece Mode' : 'Speaker Mode');
+    }
+  };
+
   const handleTransfer = () => {
     if (!transferNumber) {
       toast.error('Enter transfer number');
@@ -709,7 +749,7 @@ call.on('accept', async () => {
           {activeCall && (
             <div className="space-y-3">
               {/* Primary Controls */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className={`grid ${isMobile ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
                 <Button
                   variant={isMuted ? 'destructive' : 'outline'}
                   className="flex flex-col items-center py-3 h-auto"
@@ -739,6 +779,18 @@ call.on('accept', async () => {
                   <Grid3X3 className="w-5 h-5 mb-1" />
                   <span className="text-xs">Keypad</span>
                 </Button>
+                
+                {isMobile && (
+                  <Button
+                    variant={isSpeakerOn ? 'default' : 'outline'}
+                    className="flex flex-col items-center py-3 h-auto"
+                    onClick={handleToggleSpeaker}
+                    data-testid="speaker-button"
+                  >
+                    {isSpeakerOn ? <Volume2 className="w-5 h-5 mb-1" /> : <Speaker className="w-5 h-5 mb-1" />}
+                    <span className="text-xs">{isSpeakerOn ? 'Speaker' : 'Earpiece'}</span>
+                  </Button>
+                )}
                 
                 <Button
                   variant="outline"

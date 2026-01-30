@@ -182,9 +182,9 @@ const Messages = () => {
               {messages.map(msg => (
                 <div
                   key={msg.id}
-                  className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${msg.direction === 'inbound' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`p-2 rounded ${msg.direction === 'outbound' ? 'bg-primary text-white' : 'bg-muted'}`}>
+                  <div className={`p-2 rounded max-w-[70%] ${msg.direction === 'inbound' ? 'bg-primary text-white' : 'bg-muted'}`}>
                     <p>{msg.body}</p>
                     <p className="text-xs opacity-70">
                       {format(new Date(msg.created_at), 'h:mm a')}
