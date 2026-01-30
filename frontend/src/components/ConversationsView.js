@@ -22,7 +22,7 @@ const VoicemailPlayer = ({ voicemail }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
 
-  const loadAudio = async () => {
+  const loadAudio = React.useCallback(async () => {
     if (audioUrl || !voicemail.recording_url) return;
     
     setLoading(true);
@@ -41,12 +41,12 @@ const VoicemailPlayer = ({ voicemail }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [voicemail.id, voicemail.recording_url, audioUrl]);
 
   // Auto-load audio when component mounts
   React.useEffect(() => {
     loadAudio();
-  }, [voicemail.id]);
+  }, [loadAudio]);
 
   // Cleanup blob URL on unmount
   React.useEffect(() => {
