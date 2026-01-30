@@ -19,11 +19,11 @@ import { useWebSocket } from '../api/WebSocketContext';
 // Voicemail player component with authentication
 const VoicemailPlayer = ({ voicemail }) => {
   const [audioUrl, setAudioUrl] = React.useState(null);
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
 
   const loadAudio = async () => {
-    if (audioUrl || loading || !voicemail.recording_url) return;
+    if (audioUrl || !voicemail.recording_url) return;
     
     setLoading(true);
     setError(false);
@@ -42,6 +42,11 @@ const VoicemailPlayer = ({ voicemail }) => {
       setLoading(false);
     }
   };
+
+  // Auto-load audio when component mounts
+  React.useEffect(() => {
+    loadAudio();
+  }, [voicemail.id]);
 
   // Cleanup blob URL on unmount
   React.useEffect(() => {
@@ -67,17 +72,12 @@ const VoicemailPlayer = ({ voicemail }) => {
     );
   }
 
-  if (!audioUrl) {
+  if (loading || !audioUrl) {
     return (
-      <Button 
-        size="sm" 
-        variant="outline" 
-        onClick={loadAudio}
-        disabled={loading}
-        className="mt-2"
-      >
-        {loading ? 'Loading...' : 'Play Voicemail'}
-      </Button>
+      <div className="w-full mt-2 flex items-center gap-2">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+        <span className="text-xs text-gray-500">Loading audio...</span>
+      </div>
     );
   }
 
