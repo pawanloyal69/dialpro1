@@ -17,7 +17,11 @@ const CallHistory = () => {
   const loadCallHistory = async () => {
     try {
       const response = await api.get('/calls/history');
-      setCalls(response.data);
+      // Sort by started_at in descending order (newest first)
+      const sortedCalls = response.data.sort((a, b) => {
+        return new Date(b.started_at) - new Date(a.started_at);
+      });
+      setCalls(sortedCalls);
     } catch (error) {
       toast.error('Failed to load call history');
     } finally {
