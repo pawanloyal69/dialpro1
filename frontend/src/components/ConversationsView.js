@@ -166,6 +166,25 @@ const ConversationsView = () => {
     loadConversations();
   }, [loadConversations]);
 
+  // Auto-refresh when call ends or message received
+  useEffect(() => {
+    const lastMessage = wsMessages[wsMessages.length - 1];
+    if (lastMessage?.type === 'call_ended') {
+      console.log('Call ended - refreshing conversations');
+      loadConversations();
+      if (selectedContact) {
+        loadConversationDetails(selectedContact);
+      }
+    } else if (lastMessage?.type === 'message_received' || lastMessage?.type === 'voicemail_received') {
+      console.log('Message/Voicemail received - refreshing');
+      loadConversations();
+      loadVoicemails();
+      if (selectedContact) {
+        loadConversationDetails(selectedContact);
+      }
+    }
+  }, [wsMessages, selectedContact, loadConversations, loadConversationDetails, loadVoicemails]);
+
   useEffect(() => {
     if (selectedContact) {
       loadConversationDetails(selectedContact);
