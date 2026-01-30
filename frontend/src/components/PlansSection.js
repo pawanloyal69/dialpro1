@@ -139,9 +139,7 @@ const PlansSection = () => {
                         <Check className="w-4 h-4 text-green-500" />
                         Valid for 30 days
                       </li>
-                      <li className="flex items-center gap-2 text-xs text-gray-500">
-                        <Clock className="w-3 h-3" />
-                        SMS charged separately
+                      
                       </li>
                     </ul>
                   </div>
