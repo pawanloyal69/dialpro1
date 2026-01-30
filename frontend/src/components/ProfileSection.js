@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { User, LogOut, FileText, Shield, Info } from 'lucide-react';
+import { User, LogOut, FileText, Shield, Info, Download } from 'lucide-react';
 import { useAuth } from '../api/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -91,6 +91,8 @@ const ProfileSection = () => {
           <LogOut className="w-4 h-4 mr-2" />
           Logout
         </Button>
+
+    
 
         {/* Footer */}
         <div className="text-center text-xs text-gray-500 pt-4 border-t">
