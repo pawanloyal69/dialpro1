@@ -16,6 +16,83 @@ import api from '../api/client';
 import { format } from 'date-fns';
 import { useWebSocket } from '../api/WebSocketContext';
 
+// Voicemail player component with authentication
+const VoicemailPlayer = ({ voicemail }) => {
+  const [audioUrl, setAudioUrl] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(false);
+
+  const loadAudio = async () => {
+    if (audioUrl || loading || !voicemail.recording_url) return;
+    
+    setLoading(true);
+    setError(false);
+    
+    try {
+      const response = await api.get(`/voicemails/${voicemail.id}/audio`, {
+        responseType: 'blob'
+      });
+      const url = URL.createObjectURL(response.data);
+      setAudioUrl(url);
+    } catch (e) {
+      console.error('Failed to load voicemail audio:', e);
+      setError(true);
+      toast.error('Failed to load voicemail audio');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cleanup blob URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
+
+  if (!voicemail.recording_url) {
+    return <p className="text-xs text-gray-400 mt-2">Recording not available</p>;
+  }
+
+  if (error) {
+    return (
+      <div className="mt-2">
+        <p className="text-xs text-red-500">Failed to load audio</p>
+        <Button size="sm" variant="outline" onClick={loadAudio} className="mt-1">
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!audioUrl) {
+    return (
+      <Button 
+        size="sm" 
+        variant="outline" 
+        onClick={loadAudio}
+        disabled={loading}
+        className="mt-2"
+      >
+        {loading ? 'Loading...' : 'Play Voicemail'}
+      </Button>
+    );
+  }
+
+  return (
+    <audio 
+      controls 
+      className="w-full mt-2"
+      preload="metadata"
+      src={audioUrl}
+    >
+      Your browser does not support audio playback.
+    </audio>
+  );
+};
+
 const ConversationsView = () => {
   /* ================= STATE ================= */
   const [conversations, setConversations] = useState([]);
