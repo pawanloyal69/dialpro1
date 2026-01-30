@@ -1702,13 +1702,15 @@ async def voice_webhook(request: Request):
     to_number = normalize_phone(form_data.get("To", ""))
     call_sid = form_data.get("CallSid", "")
     direction = form_data.get("Direction", "")
+    call_status = form_data.get("CallStatus", "")
     
-    logger.info(f"Voice webhook - From: {from_number}, To: {to_number}, Direction: {direction}, CallSid: {call_sid}")
+    logger.info(f"📞 VOICE WEBHOOK - From: {from_number}, To: {to_number}, Direction: {direction}, Status: {call_status}, CallSid: {call_sid}")
     
     # CRITICAL FIX: For outbound-dial, don't interfere
+    # This happens when dialing out to ANY number (including other Twilio numbers)
     if direction == "outbound-dial":
-        logger.info(f"Outbound-dial detected, passing through")
-        # Return empty response to let the call proceed
+        logger.info(f"✅ Outbound-dial detected, passing through without interference")
+        # Return empty response to let the call proceed naturally
         return Response(
             """<?xml version="1.0" encoding="UTF-8"?>
 <Response></Response>""",
@@ -1722,7 +1724,7 @@ async def voice_webhook(request: Request):
     )
     
     if from_number_check:
-        logger.info(f"Outbound call leg detected (from virtual number {from_number}), passing through")
+        logger.info(f"✅ Outbound call leg detected (from virtual number {from_number}), passing through")
         return Response(
             """<?xml version="1.0" encoding="UTF-8"?>
 <Response></Response>""",
