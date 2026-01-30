@@ -133,7 +133,7 @@ const PlansSection = () => {
                     <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                       <li className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-green-500" />
-                        Unlimited outbound calls
+                        Unlimited outbound & inbound calls
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="w-4 h-4 text-green-500" />
