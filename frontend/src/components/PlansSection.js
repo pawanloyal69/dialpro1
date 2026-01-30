@@ -140,7 +140,6 @@ const PlansSection = () => {
                         Valid for 30 days
                       </li>
                       
-                      </li>
                     </ul>
                   </div>
                 )}
