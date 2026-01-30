@@ -276,9 +276,10 @@ const ConversationsView = () => {
                 <div className="space-y-2 mb-4">
                   {messages.map(m => (
                     <div key={m.id} className={`flex ${m.direction === 'inbound' ? 'justify-end' : 'justify-start'}`}>
-                      <span className={`inline-block p-2 rounded max-w-[70%] ${m.direction === 'inbound' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
-                        {m.body}
-                      </span>
+                      <div className={`inline-block p-2 rounded max-w-[70%] ${m.direction === 'inbound' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+                        <p className="text-[10px] opacity-60 mb-1">{m.direction === 'inbound' ? 'Received' : 'Sent'}</p>
+                        <p>{m.body}</p>
+                      </div>
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
