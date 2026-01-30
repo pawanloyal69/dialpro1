@@ -93,18 +93,21 @@ const ProfileSection = () => {
         </Button>
 
     
-{/* Download Android App */}
-<Button
-  asChild
-  variant="outline"
-  className="w-full flex items-center justify-center gap-2"
-  data-testid="download-android-app"
->
-  <a href="/dialpro.apk" download>
-    <Download className="w-4 h-4" />
-    Download Android App
-  </a>
-</Button>
+{/* Download Android App (Desktop only) */}
+<div className="hidden md:block">
+  <Button
+    asChild
+    variant="outline"
+    className="w-full flex items-center justify-center gap-2"
+    data-testid="download-android-app"
+  >
+    <a href="/dialpro.apk" download>
+      <Download className="w-4 h-4" />
+      Download Android App
+    </a>
+  </Button>
+</div>
+
 
 
 
