@@ -134,13 +134,19 @@ const ConversationsView = () => {
           api.get('/calls/history?limit=100')
         ]);
 
-        setMessages(msgsRes.data);
-
-        setCalls(
-          callsRes.data.filter(
-            c => getContactNumber(c.from_number, c.to_number) === contact
-          )
+        // Sort messages (oldest first for chat display)
+        const sortedMessages = msgsRes.data.sort((a, b) => 
+          new Date(a.created_at) - new Date(b.created_at)
         );
+        
+        setMessages(sortedMessages);
+
+        // Filter and sort calls for this contact
+        const contactCalls = callsRes.data
+          .filter(c => getContactNumber(c.from_number, c.to_number) === contact)
+          .sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
+          
+        setCalls(contactCalls);
       } catch (e) {
         console.error('Failed to load conversation details', e);
       }
