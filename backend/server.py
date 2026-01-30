@@ -1865,22 +1865,41 @@ async def call_status_webhook(request: Request):
     1. Saves call to history (with idempotency check)
     2. Calculates and applies billing
     3. Cleans up active calls
+    
+    NOTE: For outbound calls, this receives multiple events:
+    - Parent call (browser -> Twilio)
+    - Child call (Twilio -> destination)
+    We only want to save the CHILD call (the actual outbound call).
     """
     form_data = await request.form()
     
     call_status = form_data.get("CallStatus", "").lower()
     duration = int(form_data.get("CallDuration", "0"))
     call_sid = form_data.get("CallSid", "")
+    parent_call_sid = request.query_params.get("parent_call_sid", "")
     
-    logger.info(f"🔔 CALL STATUS WEBHOOK TRIGGERED!")
-    logger.info(f"Call Status - CallSid: {call_sid}, Status: {call_status}, Duration: {duration}")
-    logger.info(f"Form data keys: {list(form_data.keys())}")
+    logger.info(f"🔔 CALL STATUS WEBHOOK - CallSid: {call_sid}, ParentCallSid: {parent_call_sid}, Status: {call_status}, Duration: {duration}")
+    
+    # CRITICAL FIX: For outbound calls, ignore parent call status
+    # Only process child call (the actual outbound call to destination)
+    if parent_call_sid and call_sid == parent_call_sid:
+        logger.info(f"Ignoring parent call status for {call_sid} - will process child call instead")
+        return {"status": "ignored_parent"}
     
     # Find active call
     active_call = await db.active_calls.find_one(
         {"twilio_call_sid": call_sid},
         {"_id": 0}
     )
+    
+    # Also check if parent_call_sid matches any active call
+    if not active_call and parent_call_sid:
+        active_call = await db.active_calls.find_one(
+            {"twilio_call_sid": parent_call_sid},
+            {"_id": 0}
+        )
+        if active_call:
+            logger.info(f"Found active call by parent_call_sid: {parent_call_sid}")
     
     if not active_call:
         # Fallback: check if call already exists (idempotency safety)
@@ -1892,6 +1911,16 @@ async def call_status_webhook(request: Request):
         if existing_call:
             logger.info(f"Call {call_sid} already processed")
             return {"status": "ok"}
+
+        # Also check parent call sid
+        if parent_call_sid:
+            existing_parent = await db.calls.find_one(
+                {"twilio_call_sid": parent_call_sid},
+                {"_id": 0}
+            )
+            if existing_parent:
+                logger.info(f"Parent call {parent_call_sid} already processed")
+                return {"status": "ok"}
 
         # CRITICAL FIX: Extract call info from webhook form data as fallback
         logger.warning(f"Call status webhook - missing active call for CallSid: {call_sid}, trying to extract from webhook data")
@@ -1966,7 +1995,8 @@ async def call_status_webhook(request: Request):
     if call_status == "completed" and direction == "outbound" and duration > 0:
         cost = await calculate_and_bill_call(user_id, from_number, duration, direction)
     
-    # Save call record (with idempotency)
+    # Save call record (with idempotency) - Use parent_call_sid if available for better deduplication
+    save_call_sid = parent_call_sid if parent_call_sid else call_sid
     call_id = await save_call_record(
         user_id=user_id,
         from_number=from_number,
@@ -1974,7 +2004,7 @@ async def call_status_webhook(request: Request):
         direction=direction,
         call_status=final_status,
         duration=duration,
-        call_sid=call_sid,
+        call_sid=save_call_sid,
         started_at=started_at,
         cost=cost
     )
@@ -1982,14 +2012,20 @@ async def call_status_webhook(request: Request):
     # Clean up active call
     await db.active_calls.delete_one({"id": active_call["id"]})
     
-    # Notify user
-    await manager.send_personal_message({
-        "type": "call_ended",
-        "call_id": call_id,
-        "status": final_status,
-        "duration": duration,
-        "cost": cost
-    }, user_id)
+    # Also clean up by call_sid
+    await db.active_calls.delete_many({"twilio_call_sid": call_sid})
+    if parent_call_sid:
+        await db.active_calls.delete_many({"twilio_call_sid": parent_call_sid})
+    
+    # Notify user (only if call was actually saved)
+    if call_id:
+        await manager.send_personal_message({
+            "type": "call_ended",
+            "call_id": call_id,
+            "status": final_status,
+            "duration": duration,
+            "cost": cost
+        }, user_id)
     
     return {"status": "ok"}
 
