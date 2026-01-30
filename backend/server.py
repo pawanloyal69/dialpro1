@@ -1206,7 +1206,7 @@ async def get_call_history(user: User = Depends(get_current_user), limit: int = 
     calls = await db.calls.find(
         {"user_id": user.id},
         {"_id": 0}
-    ).sort("started_at", -1).limit(limit).to_list(limit)
+    ).sort([("started_at", -1)]).limit(limit).to_list(limit)
     return calls
 
 
