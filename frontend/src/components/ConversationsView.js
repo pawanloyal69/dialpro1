@@ -127,6 +127,19 @@ const ConversationsView = () => {
     }
   }, [getContactNumber]);
 
+  const loadVoicemail AudioUrl = async (voicemailId) => {
+    try {
+      const response = await api.get(`/voicemails/${voicemailId}/audio`, {
+        responseType: 'blob'
+      });
+      return URL.createObjectURL(response.data);
+    } catch (e) {
+      console.error('Failed to load voicemail audio:', e);
+      toast.error('Failed to load voicemail audio');
+      return null;
+    }
+  };
+
   /* ================= LOAD CHAT DETAILS ================= */
   const loadConversationDetails = useCallback(
     async (contact) => {
