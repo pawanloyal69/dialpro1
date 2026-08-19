@@ -58,9 +58,9 @@
     "zod": "^3.24.4"
   },
   "scripts": {
-    "start": "react-app-rewired start",
-    "build": "react-app-rewired build",
-    "test": "react-app-rewired test"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test"
   },
   "browserslist": {
     "production": [
@@ -86,19 +86,9 @@
     "globals": "15.15.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "react-app-rewired": "^2.2.1"
-  },
-  "overrides": {
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "@types/react": "18.2.0",
-    "@types/react-dom": "18.2.0"
-  },
-  "resolutions": {
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "@types/react": "18.2.0",
-    "@types/react-dom": "18.2.0"
+    "ajv": "8.11.0",
+    "ajv-keywords": "5.1.0",
+    "schema-utils": "4.0.0"
   },
   "engines": {
     "node": "20.x"
