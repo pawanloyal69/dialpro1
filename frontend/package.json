@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@craco/craco": "^7.1.0",
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-accordion": "^1.2.8",
     "@radix-ui/react-alert-dialog": "^1.1.11",
@@ -58,10 +59,10 @@
     "zod": "^3.24.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test"
-  },
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test"
+  }
   "browserslist": {
     "production": [
       ">0.2%",
@@ -91,6 +92,6 @@
     "schema-utils": "4.0.0"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   }
 }
