@@ -1352,12 +1352,21 @@ async def send_message(request: SMSRequest, user: User = Depends(get_current_use
         raise HTTPException(status_code=400, detail="Insufficient balance for SMS")
     
     try:
-        logger.info(f"Sending SMS via Twilio: {from_number} -> {to_number}")
-        message = twilio_client.messages.create(
-            to=to_number,
-            from_=from_number,
-            body=request.body
-        )
+        # Use Messaging Service for US destinations to comply with A2P 10DLC
+        if to_number.startswith("+1"):
+            logger.info(f"Sending SMS via Messaging Service to US: {from_number} -> {to_number}")
+            message = twilio_client.messages.create(
+                to=to_number,
+                messaging_service_sid=os.environ.get("TWILIO_MESSAGING_SERVICE_SID"),
+                body=request.body
+            )
+        else:
+            logger.info(f"Sending SMS via Twilio: {from_number} -> {to_number}")
+            message = twilio_client.messages.create(
+                to=to_number,
+                from_=from_number,
+                body=request.body
+            )
         logger.info(f"✅ SMS sent successfully! MessageSid: {message.sid}, Status: {message.status}")
         
         new_balance = user_doc["wallet_balance"] - pricing["sms_price"]
