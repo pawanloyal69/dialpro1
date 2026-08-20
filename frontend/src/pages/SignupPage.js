@@ -75,7 +75,7 @@ const SignupPage = () => {
           />
 
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">Dial Pro</h1>
-          <p className="text-gray-600 dark:text-gray-400">Powered by Tech Talk Titan</p>
+          <p className="text-gray-600 dark:text-gray-400">Powered by Tech Talk Titans</p>
         </div>
 
         <Card data-testid="signup-card">
