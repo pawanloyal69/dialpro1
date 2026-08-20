@@ -97,7 +97,7 @@ const ProfileSection = () => {
         {/* Footer */}
         <div className="text-center text-xs text-gray-500 pt-4 border-t">
           <p>Dial Pro</p>
-          <p>Powered by Tech Talk Titan</p>
+          <p>Powered by Tech Talk Titans</p>
         </div>
       </CardContent>
     </Card>
