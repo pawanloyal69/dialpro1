@@ -138,7 +138,7 @@ const TermsConditions = () => {
               </p>
               <p className="text-gray-700 dark:text-gray-300 mt-2">
                 Email: support@dialpro.live<br />
-                Powered by Tech Talk Titan
+                Powered by Tech Talk Titans
               </p>
             </section>
           </div>
