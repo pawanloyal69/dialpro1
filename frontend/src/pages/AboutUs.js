@@ -30,7 +30,7 @@ const AboutUs = () => {
               </div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Your Global Communication Partner</h2>
               <p className="text-gray-600 dark:text-gray-300 mt-2">
-                Powered by Tech Talk Titan
+                Powered by Tech Talk Titans
               </p>
             </div>
 
@@ -123,7 +123,7 @@ const AboutUs = () => {
                 <strong>Website:</strong> dialpro.live
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-                © {new Date().getFullYear()} Dial Pro. Powered by Tech Talk Titan.
+                © {new Date().getFullYear()} Dial Pro. Powered by Tech Talk Titans.
               </p>
             </section>
           </div>
