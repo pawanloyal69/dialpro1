@@ -416,11 +416,18 @@ const ConversationsView = () => {
                   <div ref={messagesEndRef} />
                 </div>
                 <div className="flex gap-2 border-t pt-2 sticky bottom-0 bg-white">
-                  <Input 
+                  <textarea 
                     value={newMessage} 
                     onChange={e => setNewMessage(e.target.value)} 
                     placeholder="Type a message..."
-                    onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    className="flex-1 border rounded p-2 resize-none"
+                    rows={2}
                   />
                   <Button onClick={handleSendMessage}>Send</Button>
                 </div>
