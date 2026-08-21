@@ -87,6 +87,10 @@ const Messages = () => {
       toast.error('Please enter recipient and message');
       return;
     }
+
+    // 🔍 DEBUG: Check if newlines are preserved before sending
+    console.log('Raw message with newlines:', JSON.stringify(newMessage));
+
     try {
       await api.post('/messages/send', {
         from_number: selectedNumber,
@@ -107,17 +111,13 @@ const Messages = () => {
     }
   }, [selectedNumber, selectedConversation, newMessage, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
-  // ---- FIXED KEY HANDLER ----
+  // ✅ SIMPLIFIED & FIXED: Enter = send, Shift+Enter = newline
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      if (e.shiftKey) {
-        // Shift+Enter: let browser insert newline naturally
-        return; // do nothing, no preventDefault
-      } else {
-        e.preventDefault(); // prevent newline
-        handleSendMessage(); // send message
-      }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();      // Prevent newline
+      handleSendMessage();     // Send the message
     }
+    // Shift+Enter does nothing special here – browser adds a newline by default
   };
 
   return (
@@ -160,7 +160,8 @@ const Messages = () => {
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={3}
-                className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
+                // ✅ ADDED: whitespace-pre-wrap preserves line breaks
+                className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
               />
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
@@ -186,6 +187,7 @@ const Messages = () => {
                 >
                   <div className={`p-2 rounded max-w-[70%] ${msg.direction === 'outbound' ? 'bg-primary text-white' : 'bg-muted'}`}>
                     <p className="text-[10px] opacity-60 mb-1">{msg.direction === 'inbound' ? 'Received' : 'Sent'}</p>
+                    {/* ✅ ADDED: whitespace-pre-wrap also here for display */}
                     <div className="whitespace-pre-wrap">{msg.body}</div>
                     <p className="text-xs opacity-70">
                       {format(new Date(msg.created_at), 'h:mm a')}
@@ -202,7 +204,8 @@ const Messages = () => {
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={3}
-                className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
+                // ✅ ADDED: whitespace-pre-wrap preserves line breaks
+                className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
               />
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
