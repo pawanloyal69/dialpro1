@@ -83,21 +83,20 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  // ========== THE FIX ==========
-  // On paste, replace newlines with a token that survives the browser
+  // ---------- THE FIX ----------
   const handlePaste = (e) => {
     e.preventDefault();
     const raw = e.clipboardData.getData('text/plain');
-    const encoded = raw.replace(/\n/g, '[NL]');
-    e.currentTarget.value = encoded;
+    // Keep as is – the \n replacement below will handle both typed and pasted
+    e.currentTarget.value = raw;
     e.currentTarget.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
-  // On send, decode the token back to real newlines
   const handleSendMessage = useCallback(async () => {
     const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
     let raw = activeRef.current ? activeRef.current.value : '';
-    raw = raw.replace(/\[NL\]/g, '\n');   // decode
+    // Convert typed \n (backslash + n) to real newline
+    raw = raw.replace(/\\n/g, '\n');
 
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
     if (!selectedNumber || !toNumber || !raw.trim()) {
@@ -105,7 +104,7 @@ const Messages = () => {
       return;
     }
 
-    console.log('🔍 SENDING DECODED:', JSON.stringify(raw));
+    console.log('🔍 SENDING (after \\n conversion):', JSON.stringify(raw));
 
     try {
       await api.post('/messages/send', {
@@ -129,6 +128,7 @@ const Messages = () => {
       e.preventDefault();
       handleSendMessage();
     }
+    // Shift+Enter will insert a newline if the browser supports it – we don't block it
   };
 
   const renderTextarea = (ref, placeholder) => (
