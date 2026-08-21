@@ -16,10 +16,12 @@ const Messages = () => {
   const [messages, setMessages] = useState([]);
   const [recipientNumber, setRecipientNumber] = useState('');
   const [showNewMessage, setShowNewMessage] = useState(false);
+  const [preview, setPreview] = useState('');
 
   const mainTextareaRef = useRef(null);
   const newTextareaRef = useRef(null);
 
+  // --- Your existing functions (loadMyNumbers, loadConversations, loadConversation) ---
   const getContactNumber = useCallback(
     (from, to) => (myNumbers.includes(from) ? to : from),
     [myNumbers]
@@ -83,29 +85,46 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  // ⭐ SEND MESSAGE – reads directly from textarea DOM
+  // --- THE FIX: Encode newlines as [NL] on paste, decode on send ---
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const raw = e.clipboardData.getData('text/plain');
+    // Replace actual newlines with a token
+    const encoded = raw.replace(/\n/g, '[NL]');
+    const target = e.currentTarget;
+    target.value = encoded;
+    setPreview(encoded);
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  const handleInput = (e) => {
+    setPreview(e.currentTarget.value);
+  };
+
   const handleSendMessage = useCallback(async () => {
     const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
-    const rawMessage = activeRef.current ? activeRef.current.value : '';
+    let rawMessage = activeRef.current ? activeRef.current.value : '';
+
+    // Decode [NL] back to newline
+    const decoded = rawMessage.replace(/\[NL\]/g, '\n');
 
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
-
-    if (!selectedNumber || !toNumber || !rawMessage.trim()) {
+    if (!selectedNumber || !toNumber || !decoded.trim()) {
       toast.error('Please enter recipient and message');
       return;
     }
 
-    console.log('🔍 SENDING RAW MESSAGE:', JSON.stringify(rawMessage));
-    console.log('📊 Contains \\n?', rawMessage.includes('\n') ? '✅ YES' : '❌ NO');
+    console.log('🔍 DECODED MESSAGE:', JSON.stringify(decoded));
 
     try {
       await api.post('/messages/send', {
         from_number: selectedNumber,
         to_number: toNumber,
-        body: rawMessage
+        body: decoded
       });
       toast.success('Message sent');
       if (activeRef.current) activeRef.current.value = '';
+      setPreview('');
       setRecipientNumber('');
       setShowNewMessage(false);
       if (selectedConversation) {
@@ -125,19 +144,11 @@ const Messages = () => {
     }
   };
 
-  // ⭐ PASTE HANDLER – preserves newlines
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    const target = e.currentTarget;
-    target.value = text;
-    target.dispatchEvent(new Event('input', { bubbles: true }));
-  };
-
   const renderTextarea = (ref, placeholder) => (
     <textarea
       ref={ref}
       placeholder={placeholder}
+      onInput={handleInput}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
       rows={3}
