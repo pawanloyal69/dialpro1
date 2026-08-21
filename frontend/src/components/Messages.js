@@ -16,12 +16,10 @@ const Messages = () => {
   const [messages, setMessages] = useState([]);
   const [recipientNumber, setRecipientNumber] = useState('');
   const [showNewMessage, setShowNewMessage] = useState(false);
-  const [preview, setPreview] = useState('');
 
   const mainTextareaRef = useRef(null);
   const newTextareaRef = useRef(null);
 
-  // --- Your existing functions (loadMyNumbers, loadConversations, loadConversation) ---
   const getContactNumber = useCallback(
     (from, to) => (myNumbers.includes(from) ? to : from),
     [myNumbers]
@@ -85,53 +83,42 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  // --- THE FIX: Encode newlines as [NL] on paste, decode on send ---
+  // ========== THE FIX ==========
+  // On paste, replace newlines with a token that survives the browser
   const handlePaste = (e) => {
     e.preventDefault();
     const raw = e.clipboardData.getData('text/plain');
-    // Replace actual newlines with a token
     const encoded = raw.replace(/\n/g, '[NL]');
-    const target = e.currentTarget;
-    target.value = encoded;
-    setPreview(encoded);
-    target.dispatchEvent(new Event('input', { bubbles: true }));
+    e.currentTarget.value = encoded;
+    e.currentTarget.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
-  const handleInput = (e) => {
-    setPreview(e.currentTarget.value);
-  };
-
+  // On send, decode the token back to real newlines
   const handleSendMessage = useCallback(async () => {
     const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
-    let rawMessage = activeRef.current ? activeRef.current.value : '';
-
-    // Decode [NL] back to newline
-    const decoded = rawMessage.replace(/\[NL\]/g, '\n');
+    let raw = activeRef.current ? activeRef.current.value : '';
+    raw = raw.replace(/\[NL\]/g, '\n');   // decode
 
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
-    if (!selectedNumber || !toNumber || !decoded.trim()) {
+    if (!selectedNumber || !toNumber || !raw.trim()) {
       toast.error('Please enter recipient and message');
       return;
     }
 
-    console.log('🔍 DECODED MESSAGE:', JSON.stringify(decoded));
+    console.log('🔍 SENDING DECODED:', JSON.stringify(raw));
 
     try {
       await api.post('/messages/send', {
         from_number: selectedNumber,
         to_number: toNumber,
-        body: decoded
+        body: raw
       });
       toast.success('Message sent');
       if (activeRef.current) activeRef.current.value = '';
-      setPreview('');
       setRecipientNumber('');
       setShowNewMessage(false);
-      if (selectedConversation) {
-        loadConversation(selectedConversation);
-      } else {
-        loadConversations();
-      }
+      if (selectedConversation) loadConversation(selectedConversation);
+      else loadConversations();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to send message');
     }
@@ -148,7 +135,6 @@ const Messages = () => {
     <textarea
       ref={ref}
       placeholder={placeholder}
-      onInput={handleInput}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
       rows={3}
