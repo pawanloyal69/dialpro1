@@ -47,7 +47,6 @@ const Messages = () => {
     try {
       const res = await api.get('/messages/history?limit=100');
       
-      // Sort messages by created_at descending (newest first) to ensure we get latest activity
       const sortedMessages = res.data.sort((a, b) => 
         new Date(b.created_at) - new Date(a.created_at)
       );
@@ -85,7 +84,7 @@ const Messages = () => {
     }
   }, []);
 
-  // ---- EFFECTS (ORDER MATTERS) ----
+  // ---- EFFECTS ----
   useEffect(() => {
     loadMyNumbers();
   }, [loadMyNumbers]);
@@ -167,7 +166,14 @@ const Messages = () => {
                 placeholder="Message"
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.shiftKey) {
+                    e.preventDefault();
+                    setNewMessage(prev => prev + '\n');
+                  }
+                }}
                 className="flex-1 min-h-[60px]"
+                rows={3}
               />
               <Button type="submit" className="self-end">
                 <Send className="w-4 h-4" />
@@ -208,7 +214,14 @@ const Messages = () => {
                 placeholder="Type message"
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.shiftKey) {
+                    e.preventDefault();
+                    setNewMessage(prev => prev + '\n');
+                  }
+                }}
                 className="flex-1 min-h-[60px]"
+                rows={3}
               />
               <Button type="submit" className="self-end">
                 <Send className="w-4 h-4" />
