@@ -17,11 +17,10 @@ const Messages = () => {
   const [recipientNumber, setRecipientNumber] = useState('');
   const [showNewMessage, setShowNewMessage] = useState(false);
 
-  // Refs for contentEditable divs
-  const mainEditorRef = useRef(null);
-  const newEditorRef = useRef(null);
+  const mainTextareaRef = useRef(null);
+  const newTextareaRef = useRef(null);
 
-  // ----- Your existing functions (keep them exactly) -----
+  // ----- Your existing functions (keep exactly as you have) -----
   const getContactNumber = useCallback(
     (from, to) => (myNumbers.includes(from) ? to : from),
     [myNumbers]
@@ -85,12 +84,20 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  // ----- THE FIX: contentEditable handlers -----
+  // ----- THE FIX: correct keydown handler -----
+  const handleKeyDown = (e) => {
+    // Only send if Enter is pressed WITHOUT Shift
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();       // Prevent newline
+      handleSendMessage();      // Send
+    }
+    // If Shift+Enter, do nothing – browser inserts a newline naturally
+  };
+
+  // ----- Send: read directly from ref -----
   const handleSendMessage = useCallback(async () => {
-    // Read from the active contentEditable div
-    const activeRef = selectedConversation ? mainEditorRef : newEditorRef;
-    let raw = activeRef.current ? activeRef.current.innerText : '';
-    // innerText automatically converts <br> to \n – no extra work needed!
+    const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
+    const raw = activeRef.current ? activeRef.current.value : '';
 
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
     if (!selectedNumber || !toNumber || !raw.trim()) {
@@ -98,7 +105,7 @@ const Messages = () => {
       return;
     }
 
-    console.log('🔍 SENDING RAW (from innerText):', JSON.stringify(raw));
+    console.log('🔍 SENDING RAW:', JSON.stringify(raw));
 
     try {
       await api.post('/messages/send', {
@@ -107,41 +114,34 @@ const Messages = () => {
         body: raw
       });
       toast.success('Message sent');
-      // Clear the editor
-      if (activeRef.current) activeRef.current.innerText = '';
+      if (activeRef.current) activeRef.current.value = '';
       setRecipientNumber('');
       setShowNewMessage(false);
-      if (selectedConversation) {
-        loadConversation(selectedConversation);
-      } else {
-        loadConversations();
-      }
+      if (selectedConversation) loadConversation(selectedConversation);
+      else loadConversations();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to send message');
     }
   }, [selectedNumber, selectedConversation, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();       // Prevent newline on Enter
-      handleSendMessage();      // Send instead
-    }
-    // Shift+Enter will naturally insert a <br> (line break)
+  // ----- Paste handler (preserves newlines) -----
+  const handlePaste = (e) => {
+    // Let the default paste happen – it keeps \n in textarea
+    // No need to interfere
   };
 
-  // ----- Render a contentEditable div (looks like a textarea) -----
-  const renderEditor = (ref, placeholder) => (
-    <div
+  const renderTextarea = (ref, placeholder) => (
+    <textarea
       ref={ref}
-      contentEditable
+      placeholder={placeholder}
       onKeyDown={handleKeyDown}
-      className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap overflow-y-auto"
-      style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}
-      data-placeholder={placeholder}
+      onPaste={handlePaste}
+      rows={3}
+      className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
     />
   );
 
-  // ---- JSX (same as before, but using renderEditor) ----
+  // ---- JSX (unchanged) ----
   return (
     <Card>
       <CardHeader className="flex justify-between flex-row items-center">
@@ -176,7 +176,7 @@ const Messages = () => {
               onChange={e => setRecipientNumber(e.target.value)}
             />
             <div className="flex gap-2">
-              {renderEditor(newEditorRef, 'Message')}
+              {renderTextarea(newTextareaRef, 'Message')}
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
@@ -211,7 +211,7 @@ const Messages = () => {
             </div>
 
             <div className="flex gap-2">
-              {renderEditor(mainEditorRef, 'Type message')}
+              {renderTextarea(mainTextareaRef, 'Type message')}
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
