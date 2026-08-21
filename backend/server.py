@@ -1568,6 +1568,32 @@ async def reject_transaction(transaction_id: str, admin: User = Depends(get_admi
     return {"message": "Transaction rejected"}
 
 
+@api_router.get("/admin/stats/sms")
+async def get_sms_stats(admin: User = Depends(get_admin_user)):
+    """Return total SMS sent and total cost deducted."""
+    total_sms = await db.messages.count_documents({"direction": "outbound"})
+    
+    # Sum of SMS costs from message records
+    sms_cost_result = await db.messages.aggregate([
+        {"$match": {"direction": "outbound"}},
+        {"$group": {"_id": None, "totalCost": {"$sum": "$cost"}}}
+    ]).to_list(1)
+    total_sms_cost = sms_cost_result[0]["totalCost"] if sms_cost_result else 0.0
+    
+    # Sum of SMS debit transactions
+    wallet_debit_result = await db.wallet_transactions.aggregate([
+        {"$match": {"method": "sms", "type": "debit"}},
+        {"$group": {"_id": None, "totalAmount": {"$sum": "$amount"}}}
+    ]).to_list(1)
+    total_wallet_debit = wallet_debit_result[0]["totalAmount"] if wallet_debit_result else 0.0
+    
+    return {
+        "total_outbound_sms": total_sms,
+        "total_sms_cost_from_messages": total_sms_cost,
+        "total_sms_wallet_debits": total_wallet_debit
+    }
+
+
 # ============================================================================
 # WEBSOCKET (SECURED WITH JWT)
 # ============================================================================
