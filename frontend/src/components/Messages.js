@@ -81,7 +81,6 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  // ----- SEND MESSAGE LOGIC -----
   const handleSendMessage = useCallback(async () => {
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
     if (!selectedNumber || !toNumber || !newMessage.trim()) {
@@ -108,16 +107,12 @@ const Messages = () => {
     }
   }, [selectedNumber, selectedConversation, newMessage, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
-  // ----- KEYBOARD HANDLER (foolproof) -----
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault();        // stop form submission
-      e.stopPropagation();       // ensure it doesn't bubble
+      e.preventDefault();
       if (e.shiftKey) {
-        // Shift+Enter → insert newline
         setNewMessage(prev => prev + '\n');
       } else {
-        // Enter alone → send
         handleSendMessage();
       }
     }
@@ -150,7 +145,7 @@ const Messages = () => {
         </Select>
 
         {showNewMessage && (
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-2"> {/* ← prevent form submit */}
+          <div className="space-y-2">
             <Input
               placeholder="Recipient number"
               value={recipientNumber}
@@ -165,11 +160,11 @@ const Messages = () => {
                 rows={3}
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
               />
-              <Button type="button" onClick={handleSendMessage} className="self-end"> {/* ← type="button" prevents form submit */}
+              <Button onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
-          </form>
+          </div>
         )}
 
         {selectedConversation && (
@@ -198,7 +193,7 @@ const Messages = () => {
               ))}
             </div>
 
-            <form onSubmit={(e) => e.preventDefault()} className="flex gap-2"> {/* ← prevent form submit */}
+            <div className="flex gap-2">
               <textarea
                 placeholder="Type message"
                 value={newMessage}
@@ -207,10 +202,10 @@ const Messages = () => {
                 rows={3}
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
               />
-              <Button type="button" onClick={handleSendMessage} className="self-end"> {/* ← type="button" */}
+              <Button onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
-            </form>
+            </div>
           </>
         )}
 
