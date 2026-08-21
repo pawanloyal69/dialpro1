@@ -83,11 +83,10 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  // ---------- THE FIX ----------
+  // ================= THE FIX =================
   const handlePaste = (e) => {
     e.preventDefault();
     const raw = e.clipboardData.getData('text/plain');
-    // Keep as is – the \n replacement below will handle both typed and pasted
     e.currentTarget.value = raw;
     e.currentTarget.dispatchEvent(new Event('input', { bubbles: true }));
   };
@@ -95,16 +94,18 @@ const Messages = () => {
   const handleSendMessage = useCallback(async () => {
     const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
     let raw = activeRef.current ? activeRef.current.value : '';
-    // Convert typed \n (backslash + n) to real newline
+
+    // ✅ Convert any occurrence of \n (backslash + n) to a real newline
+    const before = raw;
     raw = raw.replace(/\\n/g, '\n');
+    console.log('🔍 BEFORE REPLACE:', JSON.stringify(before));
+    console.log('🔍 AFTER REPLACE: ', JSON.stringify(raw));
 
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
     if (!selectedNumber || !toNumber || !raw.trim()) {
       toast.error('Please enter recipient and message');
       return;
     }
-
-    console.log('🔍 SENDING (after \\n conversion):', JSON.stringify(raw));
 
     try {
       await api.post('/messages/send', {
@@ -128,7 +129,7 @@ const Messages = () => {
       e.preventDefault();
       handleSendMessage();
     }
-    // Shift+Enter will insert a newline if the browser supports it – we don't block it
+    // Shift+Enter is allowed to insert a newline
   };
 
   const renderTextarea = (ref, placeholder) => (
