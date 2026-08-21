@@ -14,52 +14,103 @@ const Messages = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState(''); // For preview only
   const [recipientNumber, setRecipientNumber] = useState('');
   const [showNewMessage, setShowNewMessage] = useState(false);
 
-  const textareaRef = useRef(null);
+  const mainTextareaRef = useRef(null);
   const newTextareaRef = useRef(null);
 
-  // ... (keep all your existing functions: getContactNumber, loadMyNumbers, loadConversations, loadConversation, useEffect)
+  // 1. loadMyNumbers - GET your own numbers
+  const loadMyNumbers = useCallback(async () => {
+    try {
+      const res = await api.get('/numbers/my');
+      const nums = res.data.map(n => n.phone_number);
+      setMyNumbers(nums);
+      if (nums.length > 0 && !selectedNumber) {
+        setSelectedNumber(nums[0]);
+      }
+    } catch (e) {
+      console.error('Failed to load numbers', e);
+    }
+  }, [selectedNumber]);
 
-  // ⭐ The key: handle paste to preserve newlines
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const pastedText = e.clipboardData.getData('text/plain');
-    // Insert the plain text with newlines
-    const target = e.currentTarget;
-    target.value = pastedText;
-    // Trigger input event so preview updates
-    target.dispatchEvent(new Event('input', { bubbles: true }));
-  };
+  // 2. getContactNumber - helper to find the other party
+  const getContactNumber = useCallback(
+    (from, to) => (myNumbers.includes(from) ? to : from),
+    [myNumbers]
+  );
 
-  const handleInput = (e) => {
-    setNewMessage(e.target.value);
-  };
+  // 3. loadConversations - load unique contacts
+  const loadConversations = useCallback(async () => {
+    if (!selectedNumber) return;
+    try {
+      const res = await api.get('/messages/history?limit=100');
+      const sortedMessages = res.data.sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+      const map = new Map();
+      sortedMessages.forEach(msg => {
+        const contact = getContactNumber(msg.from_number, msg.to_number);
+        if (!map.has(contact)) {
+          map.set(contact, {
+            phone_number: contact,
+            last_activity: msg.created_at
+          });
+        }
+      });
+      setConversations(
+        Array.from(map.values()).sort(
+          (a, b) => new Date(b.last_activity) - new Date(a.last_activity)
+        )
+      );
+    } catch (e) {
+      console.error('Failed to load conversations', e);
+    }
+  }, [selectedNumber, getContactNumber]);
 
+  // 4. loadConversation - load messages for a specific contact
+  const loadConversation = useCallback(async (phoneNumber) => {
+    try {
+      const res = await api.get(`/messages/conversation/${phoneNumber}`);
+      setMessages(res.data);
+      setSelectedConversation(phoneNumber);
+    } catch {
+      toast.error('Failed to load conversation');
+    }
+  }, []);
+
+  // 5. Initial load
+  useEffect(() => {
+    loadMyNumbers();
+  }, [loadMyNumbers]);
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  // 6. HANDLE SEND - reads directly from textarea ref
   const handleSendMessage = useCallback(async () => {
-    const activeRef = selectedConversation ? textareaRef : newTextareaRef;
+    const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
     const rawMessage = activeRef.current ? activeRef.current.value : '';
 
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
+
     if (!selectedNumber || !toNumber || !rawMessage.trim()) {
       toast.error('Please enter recipient and message');
       return;
     }
 
-    console.log('🔍 SENDING RAW MESSAGE:', JSON.stringify(rawMessage));
+    console.log('🔍 SENDING RAW:', JSON.stringify(rawMessage));
     console.log('📊 Contains \\n?', rawMessage.includes('\n') ? '✅ YES' : '❌ NO');
 
     try {
       await api.post('/messages/send', {
         from_number: selectedNumber,
         to_number: toNumber,
-        body: rawMessage   // Send raw text with newlines
+        body: rawMessage
       });
       toast.success('Message sent');
       if (activeRef.current) activeRef.current.value = '';
-      setNewMessage('');
       setRecipientNumber('');
       setShowNewMessage(false);
       if (selectedConversation) {
@@ -72,6 +123,7 @@ const Messages = () => {
     }
   }, [selectedNumber, selectedConversation, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
+  // 7. Key handler: Enter = send, Shift+Enter = newline
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -79,13 +131,22 @@ const Messages = () => {
     }
   };
 
+  // 8. PASTE HANDLER - PRESERVES NEWLINES
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    const target = e.currentTarget;
+    target.value = text;
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  // 9. Render textarea helper
   const renderTextarea = (ref, placeholder) => (
     <textarea
       ref={ref}
       placeholder={placeholder}
-      onInput={handleInput}
       onKeyDown={handleKeyDown}
-      onPaste={handlePaste}  // 🔥 This forces newlines
+      onPaste={handlePaste}
       rows={3}
       className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
     />
@@ -130,9 +191,6 @@ const Messages = () => {
                 <Send className="w-4 h-4" />
               </Button>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Preview: {newMessage.replace(/\n/g, ' ↵ ')}
-            </div>
           </div>
         )}
 
@@ -163,13 +221,10 @@ const Messages = () => {
             </div>
 
             <div className="flex gap-2">
-              {renderTextarea(textareaRef, 'Type message')}
+              {renderTextarea(mainTextareaRef, 'Type message')}
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Preview: {newMessage.replace(/\n/g, ' ↵ ')}
             </div>
           </>
         )}
