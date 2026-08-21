@@ -88,14 +88,15 @@ const Messages = () => {
       return;
     }
 
-    // 🔥 CRITICAL CHECK: Look at your browser console (F12) to see this!
-    console.log('🔍 Raw message being sent (shows \\n as actual newline):', JSON.stringify(newMessage));
+    // ⚠️ CRITICAL: Check your browser console (F12) to see exactly what is being sent!
+    console.log('🔍 SENDING RAW MESSAGE:', JSON.stringify(newMessage));
+    console.log('📊 Does it contain \\n?', newMessage.includes('\n') ? '✅ YES' : '❌ NO');
 
     try {
       await api.post('/messages/send', {
         from_number: selectedNumber,
         to_number: toNumber,
-        body: newMessage  // This sends the raw text with \n characters
+        body: newMessage
       });
       toast.success('Message sent');
       setNewMessage('');
@@ -119,12 +120,16 @@ const Messages = () => {
     }
   };
 
-  // 🆕 FORCE PASTE TO KEEP NEWLINES (just in case)
+  // ✅ FORCE PASTE TO PRESERVE NEWLINES
   const handlePaste = (e) => {
-    // Let the default paste happen, but we explicitly grab the text with \n
-    // The default onChange will pick it up, but this ensures no weird formatting is lost.
-    // We don't need to do anything special here because the textarea handles it,
-    // but we keep this to be safe.
+    // Prevent the default paste behavior
+    e.preventDefault();
+    
+    // Get the plain text from clipboard (preserves \n)
+    const pastedText = e.clipboardData.getData('text/plain');
+    
+    // Update the state with the exact pasted text (including \n)
+    setNewMessage(pastedText);
   };
 
   return (
@@ -166,13 +171,17 @@ const Messages = () => {
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onPaste={handlePaste}
+                onPaste={handlePaste}  // 🔥 THIS FIXES PASTE ISSUE
                 rows={3}
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
               />
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
+            </div>
+            {/* 🔍 DEBUG: Shows you if newline is in the state */}
+            <div className="text-xs text-muted-foreground">
+              Preview: {newMessage.replace(/\n/g, ' ↵ ')}
             </div>
           </div>
         )}
@@ -209,13 +218,17 @@ const Messages = () => {
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onPaste={handlePaste}
+                onPaste={handlePaste}  // 🔥 THIS FIXES PASTE ISSUE
                 rows={3}
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
               />
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
+            </div>
+            {/* 🔍 DEBUG: Shows you if newline is in the state */}
+            <div className="text-xs text-muted-foreground">
+              Preview: {newMessage.replace(/\n/g, ' ↵ ')}
             </div>
           </>
         )}
