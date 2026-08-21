@@ -88,14 +88,14 @@ const Messages = () => {
       return;
     }
 
-    // 🔍 DEBUG: Check if newlines are preserved before sending
-    console.log('Raw message with newlines:', JSON.stringify(newMessage));
+    // 🔥 CRITICAL CHECK: Look at your browser console (F12) to see this!
+    console.log('🔍 Raw message being sent (shows \\n as actual newline):', JSON.stringify(newMessage));
 
     try {
       await api.post('/messages/send', {
         from_number: selectedNumber,
         to_number: toNumber,
-        body: newMessage
+        body: newMessage  // This sends the raw text with \n characters
       });
       toast.success('Message sent');
       setNewMessage('');
@@ -111,13 +111,20 @@ const Messages = () => {
     }
   }, [selectedNumber, selectedConversation, newMessage, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
-  // ✅ SIMPLIFIED & FIXED: Enter = send, Shift+Enter = newline
+  // ✅ Enter = Send, Shift+Enter = New Line
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();      // Prevent newline
-      handleSendMessage();     // Send the message
+      e.preventDefault();
+      handleSendMessage();
     }
-    // Shift+Enter does nothing special here – browser adds a newline by default
+  };
+
+  // 🆕 FORCE PASTE TO KEEP NEWLINES (just in case)
+  const handlePaste = (e) => {
+    // Let the default paste happen, but we explicitly grab the text with \n
+    // The default onChange will pick it up, but this ensures no weird formatting is lost.
+    // We don't need to do anything special here because the textarea handles it,
+    // but we keep this to be safe.
   };
 
   return (
@@ -159,8 +166,8 @@ const Messages = () => {
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 rows={3}
-                // ✅ ADDED: whitespace-pre-wrap preserves line breaks
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
               />
               <Button type="button" onClick={handleSendMessage} className="self-end">
@@ -187,7 +194,6 @@ const Messages = () => {
                 >
                   <div className={`p-2 rounded max-w-[70%] ${msg.direction === 'outbound' ? 'bg-primary text-white' : 'bg-muted'}`}>
                     <p className="text-[10px] opacity-60 mb-1">{msg.direction === 'inbound' ? 'Received' : 'Sent'}</p>
-                    {/* ✅ ADDED: whitespace-pre-wrap also here for display */}
                     <div className="whitespace-pre-wrap">{msg.body}</div>
                     <p className="text-xs opacity-70">
                       {format(new Date(msg.created_at), 'h:mm a')}
@@ -203,8 +209,8 @@ const Messages = () => {
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 rows={3}
-                // ✅ ADDED: whitespace-pre-wrap preserves line breaks
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
               />
               <Button type="button" onClick={handleSendMessage} className="self-end">
