@@ -20,7 +20,6 @@ const Messages = () => {
   const mainTextareaRef = useRef(null);
   const newTextareaRef = useRef(null);
 
-  // ----- Your existing functions (keep exactly as you have) -----
   const getContactNumber = useCallback(
     (from, to) => (myNumbers.includes(from) ? to : from),
     [myNumbers]
@@ -43,8 +42,8 @@ const Messages = () => {
     if (!selectedNumber) return;
     try {
       const res = await api.get('/messages/history?limit=100');
-      const sortedMessages = res.data.sort((a, b) => 
-        new Date(b.created_at) - new Date(a.created_at)
+      const sortedMessages = res.data.sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
       );
       const map = new Map();
       sortedMessages.forEach(msg => {
@@ -52,7 +51,7 @@ const Messages = () => {
         if (!map.has(contact)) {
           map.set(contact, {
             phone_number: contact,
-            last_activity: msg.created_at
+            last_activity: msg.created_at,
           });
         }
       });
@@ -76,30 +75,15 @@ const Messages = () => {
     }
   }, []);
 
-  useEffect(() => {
-    loadMyNumbers();
-  }, [loadMyNumbers]);
+  useEffect(() => { loadMyNumbers(); }, [loadMyNumbers]);
+  useEffect(() => { loadConversations(); }, [loadConversations]);
 
-  useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
-
-  // ----- THE FIX: correct keydown handler -----
-  const handleKeyDown = (e) => {
-    // Only send if Enter is pressed WITHOUT Shift
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();       // Prevent newline
-      handleSendMessage();      // Send
-    }
-    // If Shift+Enter, do nothing – browser inserts a newline naturally
-  };
-
-  // ----- Send: read directly from ref -----
+  // --- SEND MESSAGE ---
   const handleSendMessage = useCallback(async () => {
     const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
     const raw = activeRef.current ? activeRef.current.value : '';
-
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
+
     if (!selectedNumber || !toNumber || !raw.trim()) {
       toast.error('Please enter recipient and message');
       return;
@@ -111,7 +95,7 @@ const Messages = () => {
       await api.post('/messages/send', {
         from_number: selectedNumber,
         to_number: toNumber,
-        body: raw
+        body: raw,
       });
       toast.success('Message sent');
       if (activeRef.current) activeRef.current.value = '';
@@ -122,26 +106,89 @@ const Messages = () => {
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to send message');
     }
-  }, [selectedNumber, selectedConversation, recipientNumber, showNewMessage, loadConversation, loadConversations]);
+  }, [
+    selectedNumber,
+    selectedConversation,
+    recipientNumber,
+    showNewMessage,
+    loadConversation,
+    loadConversations,
+  ]);
 
-  // ----- Paste handler (preserves newlines) -----
-  const handlePaste = (e) => {
-    // Let the default paste happen – it keeps \n in textarea
-    // No need to interfere
-  };
+  // --- ATTACH NATIVE LISTENERS (bypasses anything React might miss) ---
+  useEffect(() => {
+    const attach = (el) => {
+      if (!el) return () => {};
+
+      // Insert text at cursor position, preserving newlines
+      const insertAtCursor = (text) => {
+        const start = el.selectionStart ?? el.value.length;
+        const end = el.selectionEnd ?? el.value.length;
+        const before = el.value.slice(0, start);
+        const after = el.value.slice(end);
+        el.value = before + text + after;
+        const newPos = start + text.length;
+        el.selectionStart = el.selectionEnd = newPos;
+        // Fire input event so any listeners know the value changed
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+
+      const onKey = (e) => {
+        if (e.key !== 'Enter') return;
+        if (e.isComposing) return; // IME composition
+
+        if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) {
+          // Force newline ourselves so no global handler can steal it
+          e.preventDefault();
+          e.stopPropagation();
+          insertAtCursor('\n');
+          return;
+        }
+
+        // Plain Enter = send
+        e.preventDefault();
+        e.stopPropagation();
+        handleSendMessage();
+      };
+
+      const onPaste = (e) => {
+        // Force plain-text paste and keep newlines
+        const text =
+          (e.clipboardData || window.clipboardData)?.getData('text/plain') ?? '';
+        if (text === '') return; // let default happen
+        e.preventDefault();
+        e.stopPropagation();
+        // Normalize Windows line endings to \n
+        const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        insertAtCursor(normalized);
+      };
+
+      el.addEventListener('keydown', onKey);
+      el.addEventListener('paste', onPaste);
+
+      return () => {
+        el.removeEventListener('keydown', onKey);
+        el.removeEventListener('paste', onPaste);
+      };
+    };
+
+    const cleanupMain = attach(mainTextareaRef.current);
+    const cleanupNew = attach(newTextareaRef.current);
+    return () => {
+      cleanupMain && cleanupMain();
+      cleanupNew && cleanupNew();
+    };
+  }, [handleSendMessage, showNewMessage, selectedConversation]);
 
   const renderTextarea = (ref, placeholder) => (
     <textarea
       ref={ref}
       placeholder={placeholder}
-      onKeyDown={handleKeyDown}
-      onPaste={handlePaste}
       rows={3}
       className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
     />
   );
 
-  // ---- JSX (unchanged) ----
   return (
     <Card>
       <CardHeader className="flex justify-between flex-row items-center">
@@ -153,7 +200,6 @@ const Messages = () => {
           New SMS
         </Button>
       </CardHeader>
-
       <CardContent className="space-y-4">
         <Select value={selectedNumber} onValueChange={setSelectedNumber}>
           <SelectTrigger>
@@ -161,9 +207,7 @@ const Messages = () => {
           </SelectTrigger>
           <SelectContent>
             {myNumbers.map(num => (
-              <SelectItem key={num} value={num}>
-                {num}
-              </SelectItem>
+              <SelectItem key={num} value={num}>{num}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -192,7 +236,6 @@ const Messages = () => {
                 Back
               </Button>
             </div>
-
             <div className="border rounded p-3 max-h-80 overflow-y-auto space-y-2">
               {messages.map(msg => (
                 <div
@@ -200,7 +243,9 @@ const Messages = () => {
                   className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div className={`p-2 rounded max-w-[70%] ${msg.direction === 'outbound' ? 'bg-primary text-white' : 'bg-muted'}`}>
-                    <p className="text-[10px] opacity-60 mb-1">{msg.direction === 'inbound' ? 'Received' : 'Sent'}</p>
+                    <p className="text-[10px] opacity-60 mb-1">
+                      {msg.direction === 'inbound' ? 'Received' : 'Sent'}
+                    </p>
                     <div className="whitespace-pre-wrap">{msg.body}</div>
                     <p className="text-xs opacity-70">
                       {format(new Date(msg.created_at), 'h:mm a')}
@@ -209,7 +254,6 @@ const Messages = () => {
                 </div>
               ))}
             </div>
-
             <div className="flex gap-2">
               {renderTextarea(mainTextareaRef, 'Type message')}
               <Button type="button" onClick={handleSendMessage} className="self-end">
