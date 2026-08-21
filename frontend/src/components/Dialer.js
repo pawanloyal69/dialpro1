@@ -309,16 +309,18 @@ useEffect(() => {
     toast.info('Call ended');
   };
 
-  // Handle keyboard input
+  // Handle keyboard input (only when NOT typing in another input/textarea)
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const tag = e.target?.tagName;
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable;
+      // If user is typing in a form field elsewhere (e.g. Messages), do not hijack keys
+      if (isEditable && e.target !== inputRef.current) return;
+
       if (activeCall) {
-        if (/^[0-9*#]$/.test(e.key)) {
-          handleDTMF(e.key);
-        }
+        if (/^[0-9*#]$/.test(e.key)) { handleDTMF(e.key); }
         return;
       }
-      
       if (/^[0-9*#]$/.test(e.key)) {
         setPhoneNumber(prev => prev + e.key);
       } else if (e.key === '+') {
@@ -327,7 +329,6 @@ useEffect(() => {
         setPhoneNumber(prev => prev.slice(0, -1));
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeCall]);
