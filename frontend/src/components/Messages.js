@@ -14,112 +14,52 @@ const Messages = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState(''); // For preview only
   const [recipientNumber, setRecipientNumber] = useState('');
   const [showNewMessage, setShowNewMessage] = useState(false);
 
-  // Refs for textareas – we'll read directly from DOM
-  const mainTextareaRef = useRef(null);
+  const textareaRef = useRef(null);
   const newTextareaRef = useRef(null);
 
-  // Temporary state just for preview (optional)
-  const [previewText, setPreviewText] = useState('');
+  // ... (keep all your existing functions: getContactNumber, loadMyNumbers, loadConversations, loadConversation, useEffect)
 
-  const getContactNumber = useCallback(
-    (from, to) => (myNumbers.includes(from) ? to : from),
-    [myNumbers]
-  );
+  // ⭐ The key: handle paste to preserve newlines
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text/plain');
+    // Insert the plain text with newlines
+    const target = e.currentTarget;
+    target.value = pastedText;
+    // Trigger input event so preview updates
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+  };
 
-  const loadMyNumbers = useCallback(async () => {
-    try {
-      const res = await api.get('/numbers/my');
-      const nums = res.data.map(n => n.phone_number);
-      setMyNumbers(nums);
-      if (nums.length > 0 && !selectedNumber) {
-        setSelectedNumber(nums[0]);
-      }
-    } catch (e) {
-      console.error('Failed to load numbers', e);
-    }
-  }, [selectedNumber]);
-
-  const loadConversations = useCallback(async () => {
-    if (!selectedNumber) return;
-    try {
-      const res = await api.get('/messages/history?limit=100');
-      const sortedMessages = res.data.sort((a, b) => 
-        new Date(b.created_at) - new Date(a.created_at)
-      );
-      const map = new Map();
-      sortedMessages.forEach(msg => {
-        const contact = getContactNumber(msg.from_number, msg.to_number);
-        if (!map.has(contact)) {
-          map.set(contact, {
-            phone_number: contact,
-            last_activity: msg.created_at
-          });
-        }
-      });
-      setConversations(
-        Array.from(map.values()).sort(
-          (a, b) => new Date(b.last_activity) - new Date(a.last_activity)
-        )
-      );
-    } catch (e) {
-      console.error('Failed to load conversations', e);
-    }
-  }, [selectedNumber, getContactNumber]);
-
-  const loadConversation = useCallback(async (phoneNumber) => {
-    try {
-      const res = await api.get(`/messages/conversation/${phoneNumber}`);
-      setMessages(res.data);
-      setSelectedConversation(phoneNumber);
-    } catch {
-      toast.error('Failed to load conversation');
-    }
-  }, []);
-
-  useEffect(() => {
-    loadMyNumbers();
-  }, [loadMyNumbers]);
-
-  useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
-
-  // Update preview when textarea content changes (just for display)
-  const updatePreview = () => {
-    const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
-    if (activeRef.current) {
-      const val = activeRef.current.value;
-      setPreviewText(val);
-    }
+  const handleInput = (e) => {
+    setNewMessage(e.target.value);
   };
 
   const handleSendMessage = useCallback(async () => {
-    // Read from the active textarea
-    const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
-    const messageBody = activeRef.current ? activeRef.current.value : '';
+    const activeRef = selectedConversation ? textareaRef : newTextareaRef;
+    const rawMessage = activeRef.current ? activeRef.current.value : '';
 
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
-    if (!selectedNumber || !toNumber || !messageBody.trim()) {
+    if (!selectedNumber || !toNumber || !rawMessage.trim()) {
       toast.error('Please enter recipient and message');
       return;
     }
 
-    console.log('🔍 SENDING RAW MESSAGE:', JSON.stringify(messageBody));
-    console.log('📊 Does it contain \\n?', messageBody.includes('\n') ? '✅ YES' : '❌ NO');
+    console.log('🔍 SENDING RAW MESSAGE:', JSON.stringify(rawMessage));
+    console.log('📊 Contains \\n?', rawMessage.includes('\n') ? '✅ YES' : '❌ NO');
 
     try {
       await api.post('/messages/send', {
         from_number: selectedNumber,
         to_number: toNumber,
-        body: messageBody
+        body: rawMessage   // Send raw text with newlines
       });
       toast.success('Message sent');
-      // Clear the textarea
       if (activeRef.current) activeRef.current.value = '';
-      setPreviewText('');
+      setNewMessage('');
       setRecipientNumber('');
       setShowNewMessage(false);
       if (selectedConversation) {
@@ -137,21 +77,15 @@ const Messages = () => {
       e.preventDefault();
       handleSendMessage();
     }
-    // Shift+Enter lets browser insert a newline naturally
   };
 
-  // On input, update preview
-  const handleInput = (e) => {
-    setPreviewText(e.target.value);
-  };
-
-  // Render a textarea with ref and no value binding
   const renderTextarea = (ref, placeholder) => (
     <textarea
       ref={ref}
       placeholder={placeholder}
       onInput={handleInput}
       onKeyDown={handleKeyDown}
+      onPaste={handlePaste}  // 🔥 This forces newlines
       rows={3}
       className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
     />
@@ -197,7 +131,7 @@ const Messages = () => {
               </Button>
             </div>
             <div className="text-xs text-muted-foreground">
-              Preview: {previewText.replace(/\n/g, ' ↵ ')}
+              Preview: {newMessage.replace(/\n/g, ' ↵ ')}
             </div>
           </div>
         )}
@@ -229,13 +163,13 @@ const Messages = () => {
             </div>
 
             <div className="flex gap-2">
-              {renderTextarea(mainTextareaRef, 'Type message')}
+              {renderTextarea(textareaRef, 'Type message')}
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
             <div className="text-xs text-muted-foreground">
-              Preview: {previewText.replace(/\n/g, ' ↵ ')}
+              Preview: {newMessage.replace(/\n/g, ' ↵ ')}
             </div>
           </>
         )}
