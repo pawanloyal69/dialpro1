@@ -20,7 +20,11 @@ const Messages = () => {
   const mainTextareaRef = useRef(null);
   const newTextareaRef = useRef(null);
 
-  // 1. loadMyNumbers - GET your own numbers
+  const getContactNumber = useCallback(
+    (from, to) => (myNumbers.includes(from) ? to : from),
+    [myNumbers]
+  );
+
   const loadMyNumbers = useCallback(async () => {
     try {
       const res = await api.get('/numbers/my');
@@ -34,13 +38,6 @@ const Messages = () => {
     }
   }, [selectedNumber]);
 
-  // 2. getContactNumber - helper to find the other party
-  const getContactNumber = useCallback(
-    (from, to) => (myNumbers.includes(from) ? to : from),
-    [myNumbers]
-  );
-
-  // 3. loadConversations - load unique contacts
   const loadConversations = useCallback(async () => {
     if (!selectedNumber) return;
     try {
@@ -68,7 +65,6 @@ const Messages = () => {
     }
   }, [selectedNumber, getContactNumber]);
 
-  // 4. loadConversation - load messages for a specific contact
   const loadConversation = useCallback(async (phoneNumber) => {
     try {
       const res = await api.get(`/messages/conversation/${phoneNumber}`);
@@ -79,7 +75,6 @@ const Messages = () => {
     }
   }, []);
 
-  // 5. Initial load
   useEffect(() => {
     loadMyNumbers();
   }, [loadMyNumbers]);
@@ -88,7 +83,7 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  // 6. HANDLE SEND - reads directly from textarea ref
+  // ⭐ SEND MESSAGE – reads directly from textarea DOM
   const handleSendMessage = useCallback(async () => {
     const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
     const rawMessage = activeRef.current ? activeRef.current.value : '';
@@ -100,7 +95,7 @@ const Messages = () => {
       return;
     }
 
-    console.log('🔍 SENDING RAW:', JSON.stringify(rawMessage));
+    console.log('🔍 SENDING RAW MESSAGE:', JSON.stringify(rawMessage));
     console.log('📊 Contains \\n?', rawMessage.includes('\n') ? '✅ YES' : '❌ NO');
 
     try {
@@ -123,7 +118,6 @@ const Messages = () => {
     }
   }, [selectedNumber, selectedConversation, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
-  // 7. Key handler: Enter = send, Shift+Enter = newline
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -131,7 +125,7 @@ const Messages = () => {
     }
   };
 
-  // 8. PASTE HANDLER - PRESERVES NEWLINES
+  // ⭐ PASTE HANDLER – preserves newlines
   const handlePaste = (e) => {
     e.preventDefault();
     const text = e.clipboardData.getData('text/plain');
@@ -140,7 +134,6 @@ const Messages = () => {
     target.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
-  // 9. Render textarea helper
   const renderTextarea = (ref, placeholder) => (
     <textarea
       ref={ref}
