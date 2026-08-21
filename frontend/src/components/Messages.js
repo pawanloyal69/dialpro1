@@ -81,8 +81,8 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
+  // ----- SEND MESSAGE LOGIC -----
+  const handleSendMessage = useCallback(async () => {
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
     if (!selectedNumber || !toNumber || !newMessage.trim()) {
       toast.error('Please enter recipient and message');
@@ -106,13 +106,20 @@ const Messages = () => {
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to send message');
     }
-  };
+  }, [selectedNumber, selectedConversation, newMessage, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
-  // Helper to handle Shift+Enter in native textareas
+  // ----- KEYBOARD HANDLER (foolproof) -----
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && e.shiftKey) {
-      e.preventDefault();
-      setNewMessage(prev => prev + '\n');
+    if (e.key === 'Enter') {
+      e.preventDefault();        // stop form submission
+      e.stopPropagation();       // ensure it doesn't bubble
+      if (e.shiftKey) {
+        // Shift+Enter → insert newline
+        setNewMessage(prev => prev + '\n');
+      } else {
+        // Enter alone → send
+        handleSendMessage();
+      }
     }
   };
 
@@ -143,7 +150,7 @@ const Messages = () => {
         </Select>
 
         {showNewMessage && (
-          <form onSubmit={handleSendMessage} className="space-y-2">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-2"> {/* ← prevent form submit */}
             <Input
               placeholder="Recipient number"
               value={recipientNumber}
@@ -158,7 +165,7 @@ const Messages = () => {
                 rows={3}
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
               />
-              <Button type="submit" className="self-end">
+              <Button type="button" onClick={handleSendMessage} className="self-end"> {/* ← type="button" prevents form submit */}
                 <Send className="w-4 h-4" />
               </Button>
             </div>
@@ -191,7 +198,7 @@ const Messages = () => {
               ))}
             </div>
 
-            <form onSubmit={handleSendMessage} className="flex gap-2">
+            <form onSubmit={(e) => e.preventDefault()} className="flex gap-2"> {/* ← prevent form submit */}
               <textarea
                 placeholder="Type message"
                 value={newMessage}
@@ -200,7 +207,7 @@ const Messages = () => {
                 rows={3}
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
               />
-              <Button type="submit" className="self-end">
+              <Button type="button" onClick={handleSendMessage} className="self-end"> {/* ← type="button" */}
                 <Send className="w-4 h-4" />
               </Button>
             </form>
