@@ -14,12 +14,15 @@ const Messages = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
   const [recipientNumber, setRecipientNumber] = useState('');
   const [showNewMessage, setShowNewMessage] = useState(false);
 
-  const messageInputRef = useRef(null);
-  const newMessageInputRef = useRef(null);
+  // Refs for textareas – we'll read directly from DOM
+  const mainTextareaRef = useRef(null);
+  const newTextareaRef = useRef(null);
+
+  // Temporary state just for preview (optional)
+  const [previewText, setPreviewText] = useState('');
 
   const getContactNumber = useCallback(
     (from, to) => (myNumbers.includes(from) ? to : from),
@@ -84,51 +87,41 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  const getTextFromDiv = (div) => {
-    if (!div) return '';
-    return div.innerText; // innerText preserves newlines as \n
-  };
-
-  const handleMessageInput = (e) => {
-    const text = getTextFromDiv(e.currentTarget);
-    setNewMessage(text);
-  };
-
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    document.execCommand('insertText', false, text);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  // Update preview when textarea content changes (just for display)
+  const updatePreview = () => {
+    const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
+    if (activeRef.current) {
+      const val = activeRef.current.value;
+      setPreviewText(val);
     }
   };
 
   const handleSendMessage = useCallback(async () => {
+    // Read from the active textarea
+    const activeRef = selectedConversation ? mainTextareaRef : newTextareaRef;
+    const messageBody = activeRef.current ? activeRef.current.value : '';
+
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
-    if (!selectedNumber || !toNumber || !newMessage.trim()) {
+    if (!selectedNumber || !toNumber || !messageBody.trim()) {
       toast.error('Please enter recipient and message');
       return;
     }
 
-    console.log('🔍 SENDING RAW MESSAGE:', JSON.stringify(newMessage));
-    console.log('📊 Does it contain \\n?', newMessage.includes('\n') ? '✅ YES' : '❌ NO');
+    console.log('🔍 SENDING RAW MESSAGE:', JSON.stringify(messageBody));
+    console.log('📊 Does it contain \\n?', messageBody.includes('\n') ? '✅ YES' : '❌ NO');
 
     try {
       await api.post('/messages/send', {
         from_number: selectedNumber,
         to_number: toNumber,
-        body: newMessage
+        body: messageBody
       });
       toast.success('Message sent');
-      setNewMessage('');
+      // Clear the textarea
+      if (activeRef.current) activeRef.current.value = '';
+      setPreviewText('');
       setRecipientNumber('');
       setShowNewMessage(false);
-      if (messageInputRef.current) messageInputRef.current.innerText = '';
-      if (newMessageInputRef.current) newMessageInputRef.current.innerText = '';
       if (selectedConversation) {
         loadConversation(selectedConversation);
       } else {
@@ -137,18 +130,30 @@ const Messages = () => {
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to send message');
     }
-  }, [selectedNumber, selectedConversation, newMessage, recipientNumber, showNewMessage, loadConversation, loadConversations]);
+  }, [selectedNumber, selectedConversation, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
-  const renderMessageEditor = (ref, placeholder) => (
-    <div
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+    // Shift+Enter lets browser insert a newline naturally
+  };
+
+  // On input, update preview
+  const handleInput = (e) => {
+    setPreviewText(e.target.value);
+  };
+
+  // Render a textarea with ref and no value binding
+  const renderTextarea = (ref, placeholder) => (
+    <textarea
       ref={ref}
-      contentEditable
-      onInput={handleMessageInput}
+      placeholder={placeholder}
+      onInput={handleInput}
       onKeyDown={handleKeyDown}
-      onPaste={handlePaste}
-      className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap overflow-y-auto"
-      style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}
-      data-placeholder={placeholder}
+      rows={3}
+      className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
     />
   );
 
@@ -186,13 +191,13 @@ const Messages = () => {
               onChange={e => setRecipientNumber(e.target.value)}
             />
             <div className="flex gap-2">
-              {renderMessageEditor(newMessageInputRef, 'Message')}
+              {renderTextarea(newTextareaRef, 'Message')}
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
             <div className="text-xs text-muted-foreground">
-              Preview: {newMessage.replace(/\n/g, ' ↵ ')}
+              Preview: {previewText.replace(/\n/g, ' ↵ ')}
             </div>
           </div>
         )}
@@ -224,13 +229,13 @@ const Messages = () => {
             </div>
 
             <div className="flex gap-2">
-              {renderMessageEditor(messageInputRef, 'Type message')}
+              {renderTextarea(mainTextareaRef, 'Type message')}
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
             <div className="text-xs text-muted-foreground">
-              Preview: {newMessage.replace(/\n/g, ' ↵ ')}
+              Preview: {previewText.replace(/\n/g, ' ↵ ')}
             </div>
           </>
         )}
