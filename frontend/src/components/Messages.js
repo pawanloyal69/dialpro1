@@ -7,6 +7,7 @@ import { MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../api/client';
 import { format } from 'date-fns';
++ import { Textarea } from './ui/textarea';
 
 const Messages = () => {
   const [myNumbers, setMyNumbers] = useState([]);
@@ -166,8 +167,9 @@ const Messages = () => {
                 placeholder="Message"
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
+                className="flex-1 min-h-[60px]"
               />
-              <Button type="submit">
+              <Button type="submit" className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
@@ -206,8 +208,9 @@ const Messages = () => {
                 placeholder="Type message"
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
+                className="flex-1 min-h-[60px]"
               />
-              <Button type="submit">
+              <Button type="submit" className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </form>
