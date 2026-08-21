@@ -322,6 +322,7 @@ useEffect(() => {
         return;
       }
       if (/^[0-9*#]$/.test(e.key)) {
+        e.preventDefault();
         setPhoneNumber(prev => prev + e.key);
       } else if (e.key === '+') {
         setPhoneNumber(prev => prev + '+');
