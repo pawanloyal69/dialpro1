@@ -1350,6 +1350,7 @@ async def send_message(request: SMSRequest, user: User = Depends(get_current_use
     if user_doc["wallet_balance"] < pricing["sms_price"]:
         logger.warning(f"Insufficient balance for user {user.id}: {user_doc['wallet_balance']} < {pricing['sms_price']}")
         raise HTTPException(status_code=400, detail="Insufficient balance for SMS")
+    logger.info(f"📝 RAW BODY FROM FRONTEND: {repr(request.body)}")
     
     try:
         # Use Messaging Service for US destinations to comply with A2P 10DLC
