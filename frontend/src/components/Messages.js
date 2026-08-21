@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -17,6 +17,9 @@ const Messages = () => {
   const [newMessage, setNewMessage] = useState('');
   const [recipientNumber, setRecipientNumber] = useState('');
   const [showNewMessage, setShowNewMessage] = useState(false);
+
+  const messageInputRef = useRef(null);
+  const newMessageInputRef = useRef(null);
 
   const getContactNumber = useCallback(
     (from, to) => (myNumbers.includes(from) ? to : from),
@@ -81,6 +84,29 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
+  const getTextFromDiv = (div) => {
+    if (!div) return '';
+    return div.innerText; // innerText preserves newlines as \n
+  };
+
+  const handleMessageInput = (e) => {
+    const text = getTextFromDiv(e.currentTarget);
+    setNewMessage(text);
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   const handleSendMessage = useCallback(async () => {
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
     if (!selectedNumber || !toNumber || !newMessage.trim()) {
@@ -88,7 +114,6 @@ const Messages = () => {
       return;
     }
 
-    // ⚠️ CRITICAL: Check your browser console (F12) to see exactly what is being sent!
     console.log('🔍 SENDING RAW MESSAGE:', JSON.stringify(newMessage));
     console.log('📊 Does it contain \\n?', newMessage.includes('\n') ? '✅ YES' : '❌ NO');
 
@@ -102,6 +127,8 @@ const Messages = () => {
       setNewMessage('');
       setRecipientNumber('');
       setShowNewMessage(false);
+      if (messageInputRef.current) messageInputRef.current.innerText = '';
+      if (newMessageInputRef.current) newMessageInputRef.current.innerText = '';
       if (selectedConversation) {
         loadConversation(selectedConversation);
       } else {
@@ -112,25 +139,18 @@ const Messages = () => {
     }
   }, [selectedNumber, selectedConversation, newMessage, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
-  // ✅ Enter = Send, Shift+Enter = New Line
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  // ✅ FORCE PASTE TO PRESERVE NEWLINES
-  const handlePaste = (e) => {
-    // Prevent the default paste behavior
-    e.preventDefault();
-    
-    // Get the plain text from clipboard (preserves \n)
-    const pastedText = e.clipboardData.getData('text/plain');
-    
-    // Update the state with the exact pasted text (including \n)
-    setNewMessage(pastedText);
-  };
+  const renderMessageEditor = (ref, placeholder) => (
+    <div
+      ref={ref}
+      contentEditable
+      onInput={handleMessageInput}
+      onKeyDown={handleKeyDown}
+      onPaste={handlePaste}
+      className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap overflow-y-auto"
+      style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}
+      data-placeholder={placeholder}
+    />
+  );
 
   return (
     <Card>
@@ -166,20 +186,11 @@ const Messages = () => {
               onChange={e => setRecipientNumber(e.target.value)}
             />
             <div className="flex gap-2">
-              <textarea
-                placeholder="Message"
-                value={newMessage}
-                onChange={e => setNewMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onPaste={handlePaste}  // 🔥 THIS FIXES PASTE ISSUE
-                rows={3}
-                className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
-              />
+              {renderMessageEditor(newMessageInputRef, 'Message')}
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
-            {/* 🔍 DEBUG: Shows you if newline is in the state */}
             <div className="text-xs text-muted-foreground">
               Preview: {newMessage.replace(/\n/g, ' ↵ ')}
             </div>
@@ -213,20 +224,11 @@ const Messages = () => {
             </div>
 
             <div className="flex gap-2">
-              <textarea
-                placeholder="Type message"
-                value={newMessage}
-                onChange={e => setNewMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onPaste={handlePaste}  // 🔥 THIS FIXES PASTE ISSUE
-                rows={3}
-                className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical whitespace-pre-wrap"
-              />
+              {renderMessageEditor(messageInputRef, 'Type message')}
               <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
-            {/* 🔍 DEBUG: Shows you if newline is in the state */}
             <div className="text-xs text-muted-foreground">
               Preview: {newMessage.replace(/\n/g, ' ↵ ')}
             </div>
