@@ -7,7 +7,6 @@ import { MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../api/client';
 import { format } from 'date-fns';
-import { Textarea } from './ui/textarea';
 
 const Messages = () => {
   const [myNumbers, setMyNumbers] = useState([]);
@@ -19,19 +18,16 @@ const Messages = () => {
   const [recipientNumber, setRecipientNumber] = useState('');
   const [showNewMessage, setShowNewMessage] = useState(false);
 
-  // ✅ Helper: always return the external number
   const getContactNumber = useCallback(
     (from, to) => (myNumbers.includes(from) ? to : from),
     [myNumbers]
   );
 
-  // ✅ Load user's numbers
   const loadMyNumbers = useCallback(async () => {
     try {
       const res = await api.get('/numbers/my');
       const nums = res.data.map(n => n.phone_number);
       setMyNumbers(nums);
-
       if (nums.length > 0 && !selectedNumber) {
         setSelectedNumber(nums[0]);
       }
@@ -40,19 +36,14 @@ const Messages = () => {
     }
   }, [selectedNumber]);
 
-  // ✅ Load conversation list (external numbers only)
   const loadConversations = useCallback(async () => {
     if (!selectedNumber) return;
-
     try {
       const res = await api.get('/messages/history?limit=100');
-      
       const sortedMessages = res.data.sort((a, b) => 
         new Date(b.created_at) - new Date(a.created_at)
       );
-      
       const map = new Map();
-
       sortedMessages.forEach(msg => {
         const contact = getContactNumber(msg.from_number, msg.to_number);
         if (!map.has(contact)) {
@@ -62,7 +53,6 @@ const Messages = () => {
           });
         }
       });
-
       setConversations(
         Array.from(map.values()).sort(
           (a, b) => new Date(b.last_activity) - new Date(a.last_activity)
@@ -73,7 +63,6 @@ const Messages = () => {
     }
   }, [selectedNumber, getContactNumber]);
 
-  // ✅ Load messages for one conversation
   const loadConversation = useCallback(async (phoneNumber) => {
     try {
       const res = await api.get(`/messages/conversation/${phoneNumber}`);
@@ -84,7 +73,6 @@ const Messages = () => {
     }
   }, []);
 
-  // ---- EFFECTS ----
   useEffect(() => {
     loadMyNumbers();
   }, [loadMyNumbers]);
@@ -93,29 +81,23 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  // ---- SEND MESSAGE ----
   const handleSendMessage = async (e) => {
     e.preventDefault();
-
     const toNumber = showNewMessage ? recipientNumber : selectedConversation;
-
     if (!selectedNumber || !toNumber || !newMessage.trim()) {
       toast.error('Please enter recipient and message');
       return;
     }
-
     try {
       await api.post('/messages/send', {
         from_number: selectedNumber,
         to_number: toNumber,
         body: newMessage
       });
-
       toast.success('Message sent');
       setNewMessage('');
       setRecipientNumber('');
       setShowNewMessage(false);
-
       if (selectedConversation) {
         loadConversation(selectedConversation);
       } else {
@@ -123,6 +105,14 @@ const Messages = () => {
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to send message');
+    }
+  };
+
+  // Helper to handle Shift+Enter in native textareas
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      setNewMessage(prev => prev + '\n');
     }
   };
 
@@ -139,7 +129,6 @@ const Messages = () => {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* FROM NUMBER */}
         <Select value={selectedNumber} onValueChange={setSelectedNumber}>
           <SelectTrigger>
             <SelectValue placeholder="Select your number" />
@@ -153,7 +142,6 @@ const Messages = () => {
           </SelectContent>
         </Select>
 
-        {/* NEW MESSAGE */}
         {showNewMessage && (
           <form onSubmit={handleSendMessage} className="space-y-2">
             <Input
@@ -162,18 +150,13 @@ const Messages = () => {
               onChange={e => setRecipientNumber(e.target.value)}
             />
             <div className="flex gap-2">
-              <Textarea
+              <textarea
                 placeholder="Message"
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.shiftKey) {
-                    e.preventDefault();
-                    setNewMessage(prev => prev + '\n');
-                  }
-                }}
-                className="flex-1 min-h-[60px]"
+                onKeyDown={handleKeyDown}
                 rows={3}
+                className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
               />
               <Button type="submit" className="self-end">
                 <Send className="w-4 h-4" />
@@ -182,7 +165,6 @@ const Messages = () => {
           </form>
         )}
 
-        {/* CHAT VIEW */}
         {selectedConversation && (
           <>
             <div className="flex justify-between items-center">
@@ -210,18 +192,13 @@ const Messages = () => {
             </div>
 
             <form onSubmit={handleSendMessage} className="flex gap-2">
-              <Textarea
+              <textarea
                 placeholder="Type message"
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.shiftKey) {
-                    e.preventDefault();
-                    setNewMessage(prev => prev + '\n');
-                  }
-                }}
-                className="flex-1 min-h-[60px]"
+                onKeyDown={handleKeyDown}
                 rows={3}
+                className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
               />
               <Button type="submit" className="self-end">
                 <Send className="w-4 h-4" />
@@ -230,7 +207,6 @@ const Messages = () => {
           </>
         )}
 
-        {/* CONVERSATION LIST */}
         {!selectedConversation && !showNewMessage && (
           <div className="space-y-2">
             {conversations.map(conv => (
