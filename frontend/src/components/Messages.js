@@ -107,13 +107,15 @@ const Messages = () => {
     }
   }, [selectedNumber, selectedConversation, newMessage, recipientNumber, showNewMessage, loadConversation, loadConversations]);
 
+  // ---- FIXED KEY HANDLER ----
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
       if (e.shiftKey) {
-        setNewMessage(prev => prev + '\n');
+        // Shift+Enter: let browser insert newline naturally
+        return; // do nothing, no preventDefault
       } else {
-        handleSendMessage();
+        e.preventDefault(); // prevent newline
+        handleSendMessage(); // send message
       }
     }
   };
@@ -160,7 +162,7 @@ const Messages = () => {
                 rows={3}
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
               />
-              <Button onClick={handleSendMessage} className="self-end">
+              <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
@@ -202,7 +204,7 @@ const Messages = () => {
                 rows={3}
                 className="flex-1 min-h-[60px] rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical"
               />
-              <Button onClick={handleSendMessage} className="self-end">
+              <Button type="button" onClick={handleSendMessage} className="self-end">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
