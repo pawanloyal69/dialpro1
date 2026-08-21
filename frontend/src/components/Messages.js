@@ -7,7 +7,7 @@ import { MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../api/client';
 import { format } from 'date-fns';
-+ import { Textarea } from './ui/textarea';
+import { Textarea } from './ui/textarea';
 
 const Messages = () => {
   const [myNumbers, setMyNumbers] = useState([]);
@@ -163,7 +163,7 @@ const Messages = () => {
               onChange={e => setRecipientNumber(e.target.value)}
             />
             <div className="flex gap-2">
-              <Input
+              <Textarea
                 placeholder="Message"
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
@@ -204,7 +204,7 @@ const Messages = () => {
             </div>
 
             <form onSubmit={handleSendMessage} className="flex gap-2">
-              <Input
+              <Textarea
                 placeholder="Type message"
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
