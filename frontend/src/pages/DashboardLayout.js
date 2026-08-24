@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../api/AuthContext';
-import { Phone, MessageSquare, History, Wallet, Settings, Menu, PhoneCall, User, LogOut, ChevronDown, ChevronUp, Crown } from 'lucide-react';
+import { Phone, MessageSquare, History, Wallet, Settings, Menu, PhoneCall, User, LogOut, ChevronDown, ChevronUp, Crown, Key } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
@@ -81,6 +80,15 @@ const ProfileButton = () => {
             About
           </Button>
         </div>
+        <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => navigate('/change-password')}
+  >
+            <Key className="w-4 h-4 mr-2" />
+            Change Password
+          </Button>
         <Button
           variant="destructive"
           size="sm"
