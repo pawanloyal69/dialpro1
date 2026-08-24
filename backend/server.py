@@ -260,6 +260,10 @@ class VerifyOTPRequest(BaseModel):
 class TokenRefresh(BaseModel):
     refresh_token: str
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
@@ -743,6 +747,32 @@ async def refresh_token_endpoint(request: TokenRefresh):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
+
+@api_router.post("/auth/change-password")
+async def change_password(
+    request: ChangePasswordRequest,
+    user: User = Depends(get_current_user)
+):
+    """
+    Change user's password.
+    Requires old password for verification.
+    """
+    user_doc = await db.users.find_one({"id": user.id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        ph.verify(user_doc["password"], request.old_password)
+    except VerifyMismatchError:
+        raise HTTPException(status_code=400, detail="Incorrect old password")
+
+    new_hashed = ph.hash(request.new_password)
+    await db.users.update_one(
+        {"id": user.id},
+        {"$set": {"password": new_hashed}}
+    )
+
+    return {"message": "Password changed successfully"}
 
 @api_router.get("/auth/me", response_model=User)
 async def get_me(user: User = Depends(get_current_user)):
