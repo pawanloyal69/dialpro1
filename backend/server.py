@@ -273,6 +273,7 @@ class User(BaseModel):
     usage_minutes: float = 0.0
     disabled: bool = False
     created_at: datetime
+    last_login_ip: Optional[str] = None
 
 class Country(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -679,7 +680,7 @@ async def signup(user_data: UserCreate):
 
 
 @api_router.post("/auth/login")
-async def login(login_data: UserLogin):
+async def login(login_data: UserLogin, request: Request):  # ← add request
     user_doc = await db.users.find_one(
         {"$or": [{"email": login_data.identifier}, {"phone_number": login_data.identifier}]}
     )
@@ -694,6 +695,20 @@ async def login(login_data: UserLogin):
         ph.verify(user_doc["password"], login_data.password)
     except VerifyMismatchError:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # ✅ CAPTURE IP
+    x_forwarded_for = request.headers.get("X-Forwarded-For")
+    if x_forwarded_for:
+        client_ip = x_forwarded_for.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else None
+
+    if client_ip:
+        await db.users.update_one(
+            {"id": user_doc["id"]},
+            {"$set": {"last_login_ip": client_ip}}
+        )
+        user_doc["last_login_ip"] = client_ip  # so it appears in response
     
     access_token = create_access_token({"sub": user_doc["id"]})
     refresh_token = create_refresh_token({"sub": user_doc["id"]})
