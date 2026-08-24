@@ -372,6 +372,7 @@ const AdminDashboard = () => {
                         <th className="text-right p-2">Balance</th>
                         <th className="text-left p-2">Status</th>
                         <th className="text-left p-2">Role</th>
+                        <th className="text-left p-2">IP Address</th>
                         <th className="text-center p-2">Actions</th>
                       </tr>
                     </thead>
@@ -404,6 +405,7 @@ const AdminDashboard = () => {
                               {user.role}
                             </span>
                           </td>
+                          <td className="p-2 font-mono text-sm">{user.last_login_ip || 'N/A'}</td>
                           <td className="p-2 text-center">
                             {user.role !== 'admin' && (
                               <Button
