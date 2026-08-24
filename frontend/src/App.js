@@ -11,6 +11,7 @@ import DashboardLayout from './pages/DashboardLayout';
 import AdminDashboard from './pages/AdminDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsConditions from './pages/TermsConditions';
+import ChangePassword from './pages/ChangePassword';
 import AboutUs from './pages/AboutUs';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
