@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { toast } from 'sonner';
+import { useAuth } from '../api/AuthContext';
 
 import Dialer from '../components/Dialer';
 import CallHistory from '../components/CallHistory';
